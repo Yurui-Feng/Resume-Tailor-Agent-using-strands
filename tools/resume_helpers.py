@@ -120,9 +120,9 @@ def generate_filename(
 
     company_clean = sanitize(company)
     position_clean = sanitize(position)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d")
 
-    filename = f"{company_clean}_{position_clean}_{timestamp}{extension}"
+    filename = f"{company_clean}_{position_clean}{extension}"
     return os.path.join(base_dir, filename)
 
 
