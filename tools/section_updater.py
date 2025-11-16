@@ -104,7 +104,7 @@ def update_subtitle(latex_content: str, new_subtitle: str) -> str:
     pattern = r'\\def\s+\\subtitle\s+\{[^}]*\}'
     replacement = f'\\def \\subtitle {{{new_subtitle}}}'
 
-    updated = re.sub(pattern, replacement, latex_content)
+    updated = re.sub(pattern, lambda _: replacement, latex_content)
 
     if updated == latex_content:
         return "Error: Could not find \\subtitle definition"
