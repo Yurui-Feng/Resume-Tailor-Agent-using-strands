@@ -1,0 +1,209 @@
+## LaTeX Formatting Rules - CRITICAL
+
+### ABSOLUTE REQUIREMENTS
+
+1. **NEVER BREAK LATEX SYNTAX**
+   - This is your highest priority
+   - When in doubt, preserve the original formatting
+   - Test syntax mentally before suggesting changes
+
+2. **PRESERVE ALL LATEX COMMANDS**
+   - Keep `\command{...}` structures intact
+   - Maintain `\begin{environment}...\end{environment}` pairs
+   - Preserve package imports and document class
+   - Keep custom commands and macros
+   - Maintain bibliography and citation formats
+
+3. **BALANCED DELIMITERS**
+   - Every `{` must have a matching `}`
+   - Every `[` must have a matching `]`
+   - Every `\begin{...}` must have `\end{...}`
+   - Match environments correctly (itemize, enumerate, description, etc.)
+
+### Common LaTeX Structures to Preserve
+
+#### Document Structure
+```latex
+\documentclass[...]{...}
+\usepackage{...}
+\begin{document}
+...
+\end{document}
+```
+
+#### Sections
+```latex
+\section{Section Name}
+\subsection{Subsection Name}
+```
+
+#### Lists
+```latex
+\begin{itemize}
+  \item First item
+  \item Second item
+\end{itemize}
+```
+
+#### Custom Resume Commands (USER'S TEMPLATE)
+
+**CRITICAL - These are the EXACT macros in the user's resume:**
+
+```latex
+% Section headers
+\section{\faIcon}{Title}
+
+% Entry blocks
+\resumeEntryStart
+\resumeEntryEnd
+
+% Job/Education entries (4 parameters: Title, Date, Subtitle, Location)
+\resumeEntryTSDL{Cloud Support Engineer}{01/2025 -- Present}{Amazon Web Services}{Toronto, ON}
+
+% Project entries (2 parameters: Title, Date)
+\resumeEntryTD{Project Title}{Date Range}
+
+% Skills entries (2 parameters: Label, Content)
+\resumeEntryS{Languages}{\textbf{Python} (primary), SQL, Bash}
+
+% Bullet lists
+\resumeItemListStart
+  \resumeItem{First bullet point text here}
+  \resumeItem{Second bullet point text here}
+\resumeItemListEnd
+```
+
+**YOU MUST preserve these exact command structures. DO NOT:**
+- Change `\resumeEntryTSDL` to `\cventry` or other formats
+- Alter the parameter order or count
+- Mix styles from other templates
+- Break the `\resumeEntryStart` / `\resumeEntryEnd` pairing
+
+#### Special Characters
+- `\%` - Percent sign
+- `\$` - Dollar sign
+- `\&` - Ampersand
+- `\_` - Underscore
+- `\#` - Hash
+- `\{` `\}` - Literal braces
+- `\textbackslash` - Backslash
+
+#### Formatting Commands
+- `\textbf{bold text}` - Bold
+- `\textit{italic text}` - Italic
+- `\underline{text}` - Underline
+- `\href{url}{text}` - Hyperlinks
+- `\url{http://...}` - URLs
+- `\texttt{monospace}` - Monospace
+
+### Validation Before Output
+
+Before generating any LaTeX content, verify:
+
+1. ✅ All `{` and `}` are balanced
+2. ✅ All `\begin{...}` have matching `\end{...}`
+3. ✅ Document structure is complete (`\documentclass`, `\begin{document}`, `\end{document}`)
+4. ✅ No unescaped special characters in text (%, $, &, _, #)
+5. ✅ All custom commands from original are preserved
+6. ✅ No broken hyperlinks or references
+7. ✅ Spacing and indentation follow original style
+
+### What You CAN Change Safely
+
+#### Content Changes (Safe)
+- Text within commands: `\textbf{old text}` → `\textbf{new text}`
+- List items: `\item Old bullet` → `\item New bullet`
+- Section text: `\section{Old}` → `\section{New}`
+- Body text between commands
+
+#### Reordering (Safe with care)
+- Reorder `\item` entries within the same list
+- Reorder sections if document structure allows
+- Reorder entries within the same environment
+
+#### What NOT to Change
+- `\documentclass` and package declarations (unless specifically requested)
+- Custom command definitions
+- Spacing commands (`\vspace`, `\hspace`)
+- Page layout commands
+- Font declarations
+- Bibliography/citation styles
+
+### Error Prevention
+
+#### Before making changes, ask yourself:
+1. "Am I about to break a LaTeX command?"
+2. "Are all my delimiters balanced?"
+3. "Did I preserve custom commands?"
+4. "Would this compile in LaTeX?"
+
+#### If unsure:
+- Preserve the original formatting
+- Ask the user for clarification
+- Suggest changes without implementing them
+- Provide before/after examples for review
+
+### Testing & Validation
+
+After generating tailored resume:
+1. Use the `validate_latex()` tool to check syntax
+2. Report any validation errors immediately
+3. Fix errors before presenting to user
+4. If errors can't be fixed, revert to original formatting for that section
+
+### Common Mistakes to AVOID (USER'S TEMPLATE)
+
+❌ Wrong macro: `\cventry{Title}{Date}{Company}{Location}`
+✅ Correct macro: `\resumeEntryTSDL{Title}{Date}{Company}{Location}`
+
+❌ Wrong parameter order: `\resumeEntryTSDL{01/2025}{Title}{Location}{Company}`
+✅ Correct order: `\resumeEntryTSDL{Title}{01/2025}{Company}{Location}`
+
+❌ Missing entry wrapper:
+```latex
+\resumeEntryTSDL{...}{...}{...}{...}
+\resumeItemListStart
+  \resumeItem{Bullet}
+\resumeItemListEnd
+```
+✅ Correct wrapper:
+```latex
+\resumeEntryStart
+  \resumeEntryTSDL{...}{...}{...}{...}
+  \resumeItemListStart
+    \resumeItem{Bullet}
+  \resumeItemListEnd
+\resumeEntryEnd
+```
+
+❌ Unbalanced braces in resumeItem: `\resumeItem{Text with \textbf{bold`
+✅ Balance all braces: `\resumeItem{Text with \textbf{bold}}`
+
+❌ Breaking professional summary: `\resumeEntryS{Summary text here}`
+✅ Correct format: `\resumeEntryS{}{Summary text here with \textbf{keywords}}`
+
+❌ Wrong section format: `\section{Professional Experience}`
+✅ Correct format: `\section{\faBriefcase}{Professional Experience}`
+
+### Resume-Specific LaTeX Packages
+
+Be aware of and preserve commands from:
+- **moderncv**: `\cventry`, `\cvitem`, `\cvskill`, `\cvline`
+- **res.cls**: `\employer`, `\location`, `\dates`, `\title`
+- **article with custom**: May have `\resumeSubheading`, `\resumeItem`, etc.
+- **europecv**: `\ecvitem`, `\ecvpersonalinfo`
+- **custom templates**: Respect ANY custom command you find
+
+### Final Check Before Output
+
+Run this mental checklist:
+1. [ ] Document compiles (mentally validate)
+2. [ ] All braces balanced
+3. [ ] All environments closed
+4. [ ] Custom commands preserved
+5. [ ] Special characters escaped
+6. [ ] No orphaned backslashes
+7. [ ] Structure matches original template
+8. [ ] Spacing and layout preserved
+
+## Remember: When in doubt, PRESERVE the original LaTeX structure!

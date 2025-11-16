@@ -1,6 +1,6 @@
 # Strands Agents SDK - Core packages
-strands-agents>=1.0.0
-strands-agents-tools>=0.2.0
+strands-agents
+strands-agents-tools
 strands-agents-builder
 
 # Jupyter support
@@ -10,6 +10,9 @@ notebook
 
 # AWS SDK (for Bedrock integration)
 boto3
+
+# OpenAI SDK (for OpenAI model integration)
+openai
 
 # Optional but useful packages
 python-dotenv  # For managing environment variables
