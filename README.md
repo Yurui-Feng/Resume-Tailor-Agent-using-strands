@@ -1,343 +1,139 @@
 # Resume Tailor Agent
 
-An intelligent AI agent built with [Strands Agents SDK](https://strandsagents.com) that tailors your LaTeX resume to specific job postings while preserving formatting and maintaining accuracy.
-
-## Features
-
-🎯 **Job-Focused Tailoring**
-- Analyzes job postings to extract key requirements
-- Matches your experience to job needs
-- Emphasizes relevant skills and projects
-- Incorporates keywords naturally for ATS optimization
-
-📝 **LaTeX-Safe Processing**
-- Preserves all LaTeX formatting and syntax
-- Validates output before saving
-- Supports all major LaTeX resume templates (moderncv, res.cls, custom)
-- Never breaks document structure
-
-🔄 **Iterative Refinement**
-- Supports multiple revision rounds
-- Conversational interface for feedback
-- Tracks context across iterations
-- Suggests improvements before applying
-
-🛠️ **Custom Tools**
-- File reading/writing
-- LaTeX validation
-- Keyword extraction
-- Job requirement analysis
-- Resume comparison
+This repository contains a Strands Agents workflow and supporting helpers that tailor a LaTeX resume to a specific role. The notebook drives a section-only generation flow: an agent rewrites the subtitle, summary, technical proficiencies, and optionally the experience section, while Python handles parsing, merging, validation, and PDF compilation.
 
 ---
 
-## Quick Start
+## Key Capabilities
 
-### Prerequisites
+- **Section-only generation** – only the relevant parts of the resume are sent to the model, keeping token usage manageable.
+- **Automatic metadata extraction** – a lightweight agent reads the posting to determine company and position, then generates a sanitized output filename.
+- **LaTeX-safe merging** – `tools/section_updater.py` and `tools/resume_helpers.py` inject the new sections without touching the preamble or macros.
+- **Optional PDF rendering** – run `pdflatex` locally (MiKTeX/TeX Live) or set `render_pdf=False` and upload the `.tex` file to Overleaf.
+- **posting_details.txt shortcut** – the default example cell automatically consumes `data/job_postings/posting_details.txt` when it exists, so you can drop a posting in that file and run a single cell.
+- **Cost controls** – `prompts/system_prompt.txt` now focuses on GENERATE mode only, and the helper extracts sections before prompting to keep context size minimal.
 
-- Python 3.10+
-- API credentials (OpenAI or AWS Bedrock)
-- A LaTeX resume file
+---
 
-### Installation
+## Requirements
+
+- Python 3.10 or newer
+- An OpenAI API key **or** AWS Bedrock credentials (placed in `.env`)
+- A LaTeX resume (`data/original/*.tex`)
+- (Optional) A local TeX distribution if you want `render_pdf=True`:
+  - Windows: MiKTeX (add `C:\Users\<you>\AppData\Local\Programs\MiKTeX\miktex\bin\x64` to `PATH`)
+  - macOS/Linux: TeX Live or MacTeX
+
+Install dependencies:
 
 ```bash
-# Activate virtual environment
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # macOS/Linux
-
-# All dependencies are already installed!
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS/Linux
+pip install -r requirements.txt
 ```
 
-### Configuration
+---
 
-Choose your AI provider and configure credentials in `.env` file:
+## Configuration
 
-#### Option 1: OpenAI (Easiest to get started)
-
-```bash
-OPENAI_API_KEY=sk-your-openai-key-here
-```
-
-Get your API key from: https://platform.openai.com/api-keys
-
-#### Option 2: AWS Bedrock (Production-ready)
+Create a `.env` file at the project root with either OpenAI or Bedrock credentials. The notebook auto-detects what is available.
 
 ```bash
-# Using long-term API key (recommended)
-AWS_BEARER_TOKEN_BEDROCK=your-long-term-api-key
+# OpenAI
+OPENAI_API_KEY=sk-your-openai-key
+
+# or AWS Bedrock
+AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token
 AWS_REGION=us-east-1
-
-# OR using standard AWS credentials
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_REGION=us-east-1
 ```
 
-**For Bedrock**, make sure you have:
-1. A long-term Bedrock API key (not short-term)
-2. Model access enabled for Claude 4 in AWS Bedrock console
-3. Appropriate region (us-east-1 or us-west-2)
+---
 
-The notebook will automatically detect which credentials are available and use the appropriate provider.
+## Running the Notebook
 
-### Usage
+1. Place your base resume in `data/original/` (for example `data/original/AI_engineer.tex`).  
+2. Save the job posting text to `data/job_postings/posting_details.txt` or any other `.txt` file under `data/job_postings/`.  
+3. Launch `jupyter notebook resume_tailor.ipynb` and run the setup cells (imports, logging, agents).  
+4. Use the “Tailor resume by pasting job posting text (with optional posting_details.txt)” cell:
+   - It loads `posting_details.txt` when present, otherwise shows a placeholder.  
+   - It calls `tailor_resume_sections(...)`, which:
+     - extracts company/position for the filename,
+     - parses only the sections that need to change,
+     - prompts the section-generation agent,
+     - merges the output via `section_updater.py`,
+     - optionally calls `pdflatex`.  
+5. Results are printed at the end: company, position, `.tex` path, `.pdf` path (if rendered), and validation status.
 
-1. **Add your resume**: Place your LaTeX resume in `data/original/resume.tex`
-2. **Add job postings**: Save job postings as `.txt` files in `data/job_postings/`
-3. **Open the notebook**: `jupyter notebook resume_tailor.ipynb`
-4. **Run the cells** and start tailoring!
+If `pdflatex` is not on PATH, either install a TeX distribution or set `render_pdf=False` and compile elsewhere (Overleaf, Docker image, etc.).
+
+---
+
+## How It Works
+
+- `prompts/system_prompt.txt` – concise GENERATE-mode instructions for the agent (no separate ANALYSIS mode).  
+- `tools/resume_helpers.py` – orchestrates metadata extraction, filename generation, section parsing, section-only prompting, merging, and optional PDF compilation.  
+- `tools/section_updater.py` – low-level helpers for extracting/replacing LaTeX sections and updating the subtitle.  
+- `resume_tailor.ipynb` – interactive notebook that wires everything together, including the posting_details loader and the result display.
+
+The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land in `data/tailored_versions/` instead of nested subdirectories. Filenames are deterministic (`<Company>_<Role>.tex/.pdf`) so reruns overwrite the latest version instead of generating timestamped duplicates.
+
+---
+
+## PDF Compilation Options
+
+- **Local TeX engine**: install MiKTeX (Windows) or TeX Live/MacTeX, then ensure `pdflatex` is on PATH. The helper already reports `pdflatex not found` if the binary cannot be located.  
+- **Remote/Overleaf**: set `render_pdf=False` and upload the generated `.tex` file. This is useful if corporate policies restrict local installations or if you prefer Overleaf’s tooling.  
+- **Docker**: run `pdflatex` via a TeX Live container and point the helper to that path if you prefer containerized builds.
+
+---
+
+## Troubleshooting
+
+- **`pdflatex not found`** – MiKTeX/Tex Live is missing from PATH. Either update PATH or run the helper cell before tailoring:
+  ```python
+  import os
+  os.environ["PATH"] += ";C:\\Users\\<you>\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64"
+  ```
+- **Nested `data/tailored_versions/data/...` folders** – this was caused by relative paths in older commits; the latest helper resolves absolute paths, so delete the nested folder and rerun.  
+- **Token usage concerns** – `tailor_resume_sections` extracts only the necessary sections and uses a trimmed system prompt. If you still need to reduce cost, disable `include_experience` unless required.  
+- **Model errors** – check the Strands log in `logs/` for the agent response, or rerun with a smaller model (e.g., `gpt-4o-mini`) if `gpt-5.1` is unnecessary.
 
 ---
 
 ## Project Structure
 
 ```
-resume-tailor-agent/
-├── .venv/                      # Virtual environment
-├── .env                        # AWS credentials (keep private!)
-├── prompts/
-│   ├── system_prompt.txt      # Agent instructions
-│   └── latex_rules.txt        # LaTeX preservation rules
-├── tools/
-│   └── resume_tools.py        # Custom tools for resume processing
+.
 ├── data/
-│   ├── original/              # Your original resume(s)
-│   ├── job_postings/          # Job posting files
-│   ├── tailored_versions/     # Generated tailored resumes
-│   └── README.md              # Data organization guide
-├── resume_tailor.ipynb        # Main Jupyter notebook
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+│   ├── job_postings/
+│   │   └── posting_details.txt      # optional default posting
+│   ├── original/                    # your source resumes
+│   └── tailored_versions/           # generated .tex/.pdf files
+├── logs/                            # Strands run logs
+├── prompts/
+│   └── system_prompt.txt
+├── tools/
+│   ├── resume_helpers.py
+│   └── section_updater.py
+├── resume_tailor.ipynb
+├── requirements.txt
+└── README.md
 ```
-
----
-
-## How It Works
-
-### 1. Job Analysis
-The agent reads the job posting and extracts:
-- Required skills and technologies
-- Preferred qualifications
-- Years of experience needed
-- Keywords and industry terms
-
-### 2. Resume Tailoring
-The agent then:
-- Highlights relevant experience
-- Reorders sections for impact
-- Incorporates job-specific keywords
-- Adjusts bullet points for relevance
-- Maintains your professional voice
-
-### 3. LaTeX Preservation
-Throughout the process:
-- All LaTeX syntax is preserved
-- Document structure remains intact
-- Custom commands are maintained
-- Output is validated before saving
-
-### 4. Iterative Refinement
-You can:
-- Request specific changes
-- Emphasize certain experiences
-- Adjust tone or focus
-- Generate multiple versions
-
----
-
-## Example Workflow
-
-```python
-# In resume_tailor.ipynb
-
-# 1. Create the agent (already configured in notebook)
-resume_agent = Agent(model=bedrock_model, system_prompt=full_prompt, tools=[...])
-
-# 2. Analyze a job posting
-analysis = resume_agent("""
-Read the job posting from 'data/job_postings/ml_engineer.txt'
-and extract key requirements.
-""")
-
-# 3. Request tailoring
-tailored = resume_agent("""
-Tailor my resume from 'data/original/resume.tex' for this job.
-Focus on:
-- ML and Python experience
-- AWS cloud projects
-- Leadership roles
-
-Save to 'data/tailored_versions/resume_ml_engineer.tex'
-""")
-
-# 4. Iterate and refine
-refinement = resume_agent("""
-Make the first experience section more quantitative.
-Add metrics for impact.
-""")
-
-# 5. Validate
-validation = resume_agent("Validate the LaTeX syntax in the tailored resume")
-```
-
----
-
-## Customization
-
-### Modify Agent Behavior
-
-Edit the system prompts to change how the agent works:
-
-**`prompts/system_prompt.txt`** - Core agent instructions
-**`prompts/latex_rules.txt`** - LaTeX handling rules
-
-### Add Custom Tools
-
-Add new tools in `tools/resume_tools.py`:
-
-```python
-from strands import tool
-
-@tool
-def my_custom_tool(param: str) -> str:
-    """Tool description."""
-    # Your logic here
-    return result
-```
-
----
-
-## Tips for Best Results
-
-### Job Posting Quality
-- Include complete job descriptions
-- Keep original formatting/structure
-- Include both requirements and nice-to-haves
-- Save as plain .txt files
-
-### Resume Preparation
-- Start with a well-formatted LaTeX resume
-- Keep your original resume comprehensive
-- Include quantitative achievements
-- Use standard section names
-
-### Tailoring Strategy
-1. **Start with analysis** - Let the agent analyze before tailoring
-2. **Be specific** - Tell the agent what to emphasize
-3. **Iterate** - Do 2-3 rounds of refinement
-4. **Validate** - Always check LaTeX compiles
-5. **Track versions** - Keep notes on which version sent where
-
----
-
-## Troubleshooting
-
-### Agent Connection Issues
-
-**Problem**: `ModelThrottledException` or quota errors (OpenAI)
-
-**Solutions**:
-1. Check your OpenAI usage: https://platform.openai.com/usage
-2. Verify you have credits/billing configured
-3. Consider switching to AWS Bedrock (see Configuration section)
-
-**Problem**: Authentication errors (Bedrock)
-
-**Solutions**:
-1. Check `AWS_BEARER_TOKEN_BEDROCK` is set correctly
-2. Use a **long-term** API key (not short-term)
-3. Enable model access in Bedrock console
-4. Verify your region is correct (us-east-1 or us-west-2)
-
-### LaTeX Validation Errors
-
-**Problem**: Generated resume won't compile
-
-**Solutions**:
-1. Run validation: `resume_agent.tool.validate_latex(content)`
-2. Check error messages
-3. Compare with original structure
-4. Ask agent to fix specific issues
-
-### File Path Issues
-
-**Problem**: Agent can't find files
-
-**Solutions**:
-1. Use relative paths: `data/original/resume.tex`
-2. Verify file exists
-3. Check file permissions
-
----
-
-## Advanced Features
-
-### Batch Processing
-
-```python
-results = batch_tailor(
-    resume_path="data/original/resume.tex",
-    job_folder="data/job_postings",
-    output_folder="data/tailored_versions"
-)
-```
-
-### Resume Comparison
-
-```python
-comparison = resume_agent.tool.compare_resumes(
-    original_path="data/original/resume.tex",
-    tailored_path="data/tailored_versions/resume_ml_engineer.tex"
-)
-```
-
-### Keyword Analysis
-
-```python
-keywords = resume_agent.tool.extract_keywords(job_text)
-```
-
----
-
-## Security & Privacy
-
-⚠️ **Never commit sensitive information**:
-
-1. `.env` file (API keys)
-2. Resume files
-3. Job postings
-
-The `.gitignore` is already configured to exclude these!
-
----
-
-## Resources
-
-### Strands Agents SDK
-- **Docs**: https://strandsagents.com
-- **GitHub**: https://github.com/strands-agents/sdk-python
-
-### AWS Bedrock
-- **API Keys**: https://docs.aws.amazon.com/bedrock/latest/userguide/getting-started-api-keys.html
-- **Pricing**: https://aws.amazon.com/bedrock/pricing/
 
 ---
 
 ## License
 
-Apache 2.0 (via Strands Agents SDK)
-
-Your resume content remains your own!
+Apache 2.0 (consistent with the Strands Agents SDK). Your resume content remains yours; keep `.env`, resumes, and postings out of version control.
 
 ---
 
-**Happy job hunting! 🎯📄✨**
+## Further Reading
 
-*Transform your resume for every opportunity while keeping your LaTeX formatting perfect.*
+- Strands Agents SDK documentation: https://strandsagents.com  
+- AWS Bedrock: https://aws.amazon.com/bedrock  
+- MiKTeX downloads: https://miktex.org/download  
+- TeX Live: https://tug.org/texlive/  
 
----
-
-## About Strands Agents SDK
-
-This project is built with Strands Agents, an open-source Python SDK by AWS for building AI agents. For more information about Strands, see `README_old.md` or visit https://strandsagents.com
+Tailor confidently, keep your LaTeX clean, and version your resumes per role without leaving the notebook.
