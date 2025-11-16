@@ -2,6 +2,9 @@
 Helper functions for resume tailoring workflow.
 
 This module contains utilities for:
+- Extracting job metadata (company, position) using LLM
+- Generating sanitized filenames with timestamps
+- Compiling LaTeX to PDF
 - Parsing agent output into structured sections
 - Running the complete resume tailoring pipeline
 """
@@ -10,6 +13,185 @@ from pathlib import Path
 from typing import Dict, Optional
 import shutil
 import re
+import os
+import json
+import subprocess
+import tempfile
+from datetime import datetime
+
+
+def extract_job_metadata_with_llm(job_text: str, metadata_agent) -> Dict[str, str]:
+    """
+    Use lightweight LLM to extract company and position from job posting.
+
+    Args:
+        job_text: Raw job posting text (copy-pasted)
+        metadata_agent: Lightweight agent for extraction (e.g., gpt-4o-mini agent)
+
+    Returns:
+        Dictionary with "company" and "position" keys
+    """
+    prompt = f"""Extract the company name and job position from this job posting.
+
+JOB POSTING:
+{job_text}
+
+Return ONLY a JSON object in this exact format:
+{{
+  "company": "Company Name",
+  "position": "Job Title"
+}}
+
+Rules:
+- Extract exact company name (e.g., "Google", "Amazon Web Services", "Meta")
+- Extract full job title (e.g., "Senior ML Engineer", "Data Scientist")
+- If company is not clear, use "Unknown_Company"
+- If position is not clear, use "Unknown_Position"
+- Return ONLY the JSON object, no markdown fences, no extra text
+"""
+
+    try:
+        result = metadata_agent(prompt)
+
+        # Handle different response formats
+        if isinstance(result, str):
+            text = result
+        else:
+            # Try different attributes
+            text = None
+            for attr in ("output_text", "text", "response", "content"):
+                value = getattr(result, attr, None)
+                if value and isinstance(value, str):
+                    text = value
+                    break
+            if text is None:
+                text = str(result)
+
+        # Extract JSON if wrapped in markdown
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0]
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0]
+
+        # Parse JSON
+        metadata = json.loads(text.strip())
+        return {
+            "company": metadata.get("company", "Unknown_Company"),
+            "position": metadata.get("position", "Unknown_Position")
+        }
+
+    except Exception as e:
+        print(f"⚠️  Metadata extraction failed: {e}")
+        print(f"   Using fallback values")
+        return {
+            "company": "Unknown_Company",
+            "position": "Unknown_Position"
+        }
+
+
+def generate_filename(
+    company: str,
+    position: str,
+    base_dir: str = "data/tailored_versions",
+    extension: str = ".tex"
+) -> str:
+    """
+    Generate sanitized filename with timestamp.
+
+    Args:
+        company: Company name
+        position: Job position/title
+        base_dir: Output directory
+        extension: File extension (default: .tex)
+
+    Returns:
+        Full path like "data/tailored_versions/Google_Senior_ML_Engineer_20251116_154530.tex"
+    """
+    def sanitize(text: str) -> str:
+        """Remove special characters and sanitize text for filename."""
+        # Remove special chars, keep alphanumeric and spaces
+        text = re.sub(r'[^\w\s-]', '', text)
+        # Replace spaces with underscores
+        text = re.sub(r'\s+', '_', text)
+        # Remove multiple underscores
+        text = re.sub(r'_+', '_', text)
+        # Limit length to avoid filesystem issues
+        return text[:50].strip('_')
+
+    company_clean = sanitize(company)
+    position_clean = sanitize(position)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    filename = f"{company_clean}_{position_clean}_{timestamp}{extension}"
+    return os.path.join(base_dir, filename)
+
+
+def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
+    """
+    Compile LaTeX file to PDF using pdflatex.
+
+    Args:
+        tex_file_path: Path to .tex file
+        cleanup: Remove intermediate files (.aux, .log, .out) after compilation
+
+    Returns:
+        Path to generated PDF file, or error message starting with "❌"
+    """
+    tex_path = Path(tex_file_path).resolve()
+
+    if not tex_path.exists():
+        return f"❌ Error: TeX file not found: {tex_file_path}"
+
+    output_dir = tex_path.parent
+
+    # Check if pdflatex is available
+    try:
+        subprocess.run(
+            ["pdflatex", "--version"],
+            capture_output=True,
+            check=True,
+            timeout=5
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return "❌ Error: pdflatex not found. Please install LaTeX (MiKTeX, TeX Live, or MacTeX)."
+    except subprocess.TimeoutExpired:
+        return "❌ Error: pdflatex version check timeout"
+
+    # Compile LaTeX to PDF
+    try:
+        result = subprocess.run(
+            [
+                "pdflatex",
+                "-interaction=nonstopmode",
+                f"-output-directory={output_dir}",
+                tex_path.name
+            ],
+            cwd=output_dir,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        pdf_path = tex_path.with_suffix('.pdf')
+
+        if pdf_path.exists():
+            # Clean up intermediate files
+            if cleanup:
+                for ext in ['.aux', '.log', '.out']:
+                    temp_file = tex_path.with_suffix(ext)
+                    if temp_file.exists():
+                        temp_file.unlink()
+
+            return str(pdf_path)
+        else:
+            # PDF not generated, return error details
+            error_log = result.stderr if result.stderr else result.stdout
+            return f"❌ PDF generation failed:\n{error_log[:500]}"
+
+    except subprocess.TimeoutExpired:
+        return "❌ PDF compilation timeout (>30s). Check LaTeX for errors."
+    except Exception as e:
+        return f"❌ PDF compilation error: {e}"
 
 
 def parse_sections(result) -> Dict[str, str]:
@@ -149,28 +331,59 @@ def _remove_year_counts(text: str) -> str:
 
 def tailor_resume_sections(
     section_generator_agent,
-    job_posting_path: str,
+    metadata_extractor_agent,
+    job_text: str,
     original_resume_path: str,
-    output_path: str,
-    include_experience: bool = False
-) -> str:
+    output_path: Optional[str] = None,
+    include_experience: bool = False,
+    render_pdf: bool = True
+) -> Dict[str, Optional[str]]:
     """
-    Complete workflow: extract sections, generate updates, and merge.
+    Complete workflow: extract metadata, generate sections, merge, and optionally render PDF.
 
     Args:
-        section_generator_agent: The agent instance to use for generation
-        job_posting_path: Path to job posting text file
+        section_generator_agent: Main agent for resume section generation
+        metadata_extractor_agent: Lightweight agent for company/position extraction
+        job_text: Raw job posting text (copy-pasted directly)
         original_resume_path: Path to original .tex file
-        output_path: Path to save tailored .tex file
+        output_path: Path to save tailored .tex file (auto-generated if None)
         include_experience: Whether to update Experience section
+        render_pdf: Compile LaTeX to PDF after successful merge
 
     Returns:
-        Validation result message
+        Dictionary with:
+            - tex_path: Path to generated .tex file
+            - pdf_path: Path to generated .pdf file (if render_pdf=True)
+            - company: Extracted company name
+            - position: Extracted job position
+            - validation: LaTeX validation result message
     """
     from tools.section_updater import extract_section, merge_sections
 
+    # 1. Extract metadata using lightweight agent
+    print("🔍 Extracting job metadata...")
+    metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
+    print(f"   Company: {metadata['company']}")
+    print(f"   Position: {metadata['position']}")
+    print()
+
+    # 2. Generate filename if not provided
+    if output_path is None:
+        output_path = generate_filename(
+            metadata["company"],
+            metadata["position"],
+            base_dir="data/tailored_versions",
+            extension=".tex"
+        )
+        print(f"📝 Auto-generated filename: {Path(output_path).name}")
+        print()
+
+    # 3. Save job text to temporary file for section extraction
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
+        f.write(job_text)
+        job_posting_path = f.name
+
     print("📋 Starting resume tailoring...")
-    print(f"   Job posting: {job_posting_path}")
     print(f"   Original: {original_resume_path}")
     print(f"   Output: {output_path}")
     print()
@@ -291,7 +504,35 @@ OPTIONAL EXPERIENCE:
 
     print()
     print(merge_result)
-    return merge_result
+
+    # 8. Compile PDF if requested
+    pdf_path = None
+    if render_pdf:
+        print()
+        print("📄 Compiling PDF...")
+        pdf_result = compile_pdf(output_path, cleanup=True)
+
+        if pdf_result.startswith("❌"):
+            print(pdf_result)
+            pdf_path = None
+        else:
+            pdf_path = pdf_result
+            print(f"   ✓ PDF created: {Path(pdf_path).name}")
+
+    # 9. Cleanup temporary job posting file
+    try:
+        os.unlink(job_posting_path)
+    except Exception:
+        pass  # Ignore cleanup errors
+
+    # 10. Return all paths and metadata
+    return {
+        "tex_path": output_path,
+        "pdf_path": pdf_path,
+        "company": metadata["company"],
+        "position": metadata["position"],
+        "validation": merge_result
+    }
 
 
 def _post_merge_cleanup(output_path: str) -> None:
