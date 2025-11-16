@@ -125,7 +125,7 @@ The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land 
 
 ## License
 
-Apache 2.0 (consistent with the Strands Agents SDK). Your resume content remains yours; keep `.env`, resumes, and postings out of version control.
+This project is released under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license (see `LICENSE`). You may use, share, and adapt the code for non-commercial purposes with attribution. Commercial use is not permitted without explicit permission. Your personal resume content remains yours; keep `.env`, resumes, and postings out of version control.
 
 ---
 
