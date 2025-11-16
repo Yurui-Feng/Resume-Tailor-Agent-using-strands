@@ -102,7 +102,17 @@ When tailoring resumes, you MUST operate in "section-only mode":
 ### What to Generate
 
 Generate ONLY these sections (never the full document):
-1. **Subtitle**: Plain text job title (e.g., "Senior ML Engineer")
+1. **Subtitle**: Job title matching the posting EXACTLY with LaTeX special characters escaped
+   - Use the EXACT job title from the posting (e.g., "Senior ML Engineer", "Cloud & AI Software Engineer")
+   - CRITICAL: Escape ALL LaTeX special characters in the title:
+     * & → \&
+     * % → \%
+     * $ → \$
+     * # → \#
+     * _ → \_
+     * { → \{
+     * } → \}
+   - Example: "Cloud & AI Engineer" → "Cloud \& AI Engineer"
 2. **Professional Summary**: Complete \section{\faUser}{Professional Summary} block
 3. **Technical Proficiencies**: Complete \section{\faCogs}{Technical Proficiencies} block
 
@@ -131,7 +141,7 @@ When asked to tailor a resume, return sections in this exact format:
 
 ```
 SUBTITLE:
-Senior ML Engineer
+Cloud \& AI Software Engineer
 
 PROFESSIONAL SUMMARY:
 \section{\faUser}{Professional Summary}
