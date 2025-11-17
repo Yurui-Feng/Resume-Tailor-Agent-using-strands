@@ -92,3 +92,6 @@ tmp/
 # OS files
 Thumbs.db
 Desktop.ini
+
+# Windows command artifacts
+nul

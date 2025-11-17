@@ -50,19 +50,108 @@ AWS_REGION=us-east-1
 
 ---
 
-## Running the Notebook
+## Usage Options
 
-1. Place your base resume in `data/original/` (for example `data/original/AI_engineer.tex`).  
-2. Save the job posting text to `data/job_postings/posting_details.txt` or any other `.txt` file under `data/job_postings/`.  
-3. Launch `jupyter notebook resume_tailor.ipynb` and run the setup cells (imports, logging, agents).  
-4. Use the “Tailor resume by pasting job posting text (with optional posting_details.txt)” cell:
-   - It loads `posting_details.txt` when present, otherwise shows a placeholder.  
+### Option 1: Docker (Recommended for Production)
+
+**Fastest way to get started** - includes LaTeX, Python, and all dependencies in one container.
+
+**Quick Start:**
+
+```bash
+# 1. Create .env file with your API credentials
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+
+# 2. Place your resume in data/original/
+mkdir -p data/original
+cp your_resume.tex data/original/AI_engineer.tex
+
+# 3. Start the service
+docker-compose up -d
+
+# 4. Access the web interface
+# http://localhost:8000
+```
+
+**What's included:**
+- ✅ Full LaTeX distribution (TeX Live) - no MiKTeX needed!
+- ✅ Python 3.11 with all dependencies
+- ✅ FastAPI web server + frontend
+- ✅ Auto-restarts on failure
+- ✅ Data persistence (resumes saved to ./data)
+
+**Docker Commands:**
+
+```bash
+# View logs
+docker logs resume-tailor -f
+
+# Stop the service
+docker-compose down
+
+# Restart after code changes
+docker-compose restart
+
+# Rebuild image (after changing requirements)
+docker-compose build
+docker-compose up -d
+```
+
+**Volume Mounts (Persisted Data):**
+- `./data` → Resumes, job postings, and generated files
+- `./.env` → API credentials (not baked into image)
+- `./logs` → Application logs
+
+**Docker vs Local:**
+- **Use Docker if:** You want zero setup hassle, deploying to a server, or don't want to install LaTeX locally
+- **Use local if:** You're actively developing code or prefer Jupyter notebooks
+
+### Option 2: Web Interface (Local)
+
+**Quick Start:**
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the web server
+python -m uvicorn backend.main:app --reload
+
+# Open your browser
+# http://localhost:8000
+```
+
+**Features:**
+
+- **Clean UI** – paste job postings, select resumes, and download results
+- **Real-time progress** – watch your resume being tailored with progress updates
+- **File management** – upload new resumes, download .tex/.pdf files
+- **Results history** – view and manage all previously tailored resumes
+- **API documentation** – auto-generated docs at http://localhost:8000/docs
+
+**Workflow:**
+
+1. Place your base resume in `data/original/AI_engineer.tex` (or upload via web UI)
+2. Open http://localhost:8000
+3. Select your resume from the dropdown
+4. Paste the job posting text (minimum 50 characters)
+5. Choose options (include experience section, render PDF)
+6. Click "Tailor Resume" and wait for processing
+7. Download your customized .tex and .pdf files
+
+### Option 3: Jupyter Notebook (Advanced)
+
+1. Place your base resume in `data/original/` (for example `data/original/AI_engineer.tex`).
+2. Save the job posting text to `data/job_postings/posting_details.txt` or any other `.txt` file under `data/job_postings/`.
+3. Launch `jupyter notebook resume_tailor.ipynb` and run the setup cells (imports, logging, agents).
+4. Use the "Tailor resume by pasting job posting text (with optional posting_details.txt)" cell:
+   - It loads `posting_details.txt` when present, otherwise shows a placeholder.
    - It calls `tailor_resume_sections(...)`, which:
      - extracts company/position for the filename,
      - parses only the sections that need to change,
      - prompts the section-generation agent,
      - merges the output via `section_updater.py`,
-     - optionally calls `pdflatex`.  
+     - optionally calls `pdflatex`.
 5. Results are printed at the end: company, position, `.tex` path, `.pdf` path (if rendered), and validation status.
 
 If `pdflatex` is not on PATH, either install a TeX distribution or set `render_pdf=False` and compile elsewhere (Overleaf, Docker image, etc.).
@@ -76,7 +165,45 @@ If `pdflatex` is not on PATH, either install a TeX distribution or set `render_p
 - `tools/section_updater.py` – low-level helpers for extracting/replacing LaTeX sections and updating the subtitle.  
 - `resume_tailor.ipynb` – interactive notebook that wires everything together, including the posting_details loader and the result display.
 
-The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land in `data/tailored_versions/` instead of nested subdirectories. Filenames are deterministic (`<Company>_<Role>.tex/.pdf`) so reruns overwrite the latest version instead of generating timestamped duplicates.
+The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land in `data/tailored_versions/` instead of nested subdirectories. Filenames include timestamps (`<Company>_<Role>_<Timestamp>.tex/.pdf`) for version tracking.
+
+---
+
+## Frontend Development
+
+The web interface is a **pure static HTML/CSS/JavaScript app** with no build step required.
+
+### Architecture:
+- `frontend/index.html` - Main UI (Tailwind CSS for styling)
+- `frontend/app.js` - API client and application logic
+- `frontend/styles.css` - Custom animations and responsive design
+
+### How It Works:
+1. Frontend calls `POST /api/tailor` to submit tailoring jobs
+2. Polls `GET /api/jobs/{id}/status` every 2 seconds for progress updates
+3. Downloads results from `GET /api/results/{id}/tex` and `GET /api/results/{id}/pdf`
+
+### Making Changes:
+- Edit `frontend/styles.css` for styling changes
+- Edit `frontend/app.js` for functionality changes
+- **No build step** - just refresh your browser!
+
+### Running Frontend Separately (Advanced):
+
+```bash
+# Backend only (API server)
+python -m uvicorn backend.main:app --reload --port 8000
+
+# Frontend on different port (any static server)
+cd frontend
+python -m http.server 3000
+
+# Configure CORS in backend/config.py to allow localhost:3000
+```
+
+### API Documentation:
+- **Swagger UI**: http://localhost:8000/docs (interactive API testing)
+- **ReDoc**: http://localhost:8000/redoc (cleaner API documentation)
 
 ---
 
@@ -105,19 +232,32 @@ The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land 
 
 ```
 .
+├── backend/                         # FastAPI web server
+│   ├── api/
+│   │   ├── models.py               # Pydantic request/response models
+│   │   └── routes.py               # API endpoints
+│   ├── services/
+│   │   └── resume_service.py       # Agent management & job processing
+│   ├── config.py                   # Configuration
+│   └── main.py                     # FastAPI app entry point
+├── frontend/                        # Web UI
+│   ├── index.html                  # Main page
+│   ├── app.js                      # JavaScript application
+│   └── styles.css                  # Custom styles
 ├── data/
 │   ├── job_postings/
-│   │   └── posting_details.txt      # optional default posting
-│   ├── original/                    # your source resumes
-│   └── tailored_versions/           # generated .tex/.pdf files
-├── logs/                            # Strands run logs
+│   │   └── posting_details.txt     # optional default posting
+│   ├── original/                   # your source resumes
+│   └── tailored_versions/          # generated .tex/.pdf files
+├── logs/                           # Strands run logs
 ├── prompts/
-│   └── system_prompt.txt
+│   └── system_prompt.txt           # Agent instructions
 ├── tools/
-│   ├── resume_helpers.py
-│   └── section_updater.py
-├── resume_tailor.ipynb
-├── requirements.txt
+│   ├── resume_helpers.py           # Main workflow orchestration
+│   ├── resume_tools.py             # Utility functions
+│   └── section_updater.py          # LaTeX section manipulation
+├── resume_tailor.ipynb             # Jupyter notebook interface
+├── requirements.txt                # Python dependencies
 └── README.md
 ```
 

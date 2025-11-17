@@ -19,6 +19,14 @@ import subprocess
 import tempfile
 from datetime import datetime
 
+# Import OUTPUT_DIR configuration
+try:
+    from backend.config import OUTPUT_DIR
+    DEFAULT_OUTPUT_DIR = str(OUTPUT_DIR)
+except ImportError:
+    # Fallback for notebook usage (backend.config may not be available)
+    DEFAULT_OUTPUT_DIR = "data/tailored_versions"
+
 
 def extract_job_metadata_with_llm(job_text: str, metadata_agent) -> Dict[str, str]:
     """
@@ -92,7 +100,7 @@ Rules:
 def generate_filename(
     company: str,
     position: str,
-    base_dir: str = "data/tailored_versions",
+    base_dir: str = None,
     extension: str = ".tex"
 ) -> str:
     """
@@ -117,6 +125,10 @@ def generate_filename(
         text = re.sub(r'_+', '_', text)
         # Limit length to avoid filesystem issues
         return text[:50].strip('_')
+
+    # Use default output directory if not specified
+    if base_dir is None:
+        base_dir = DEFAULT_OUTPUT_DIR
 
     company_clean = sanitize(company)
     position_clean = sanitize(position)
@@ -372,7 +384,6 @@ def tailor_resume_sections(
         output_path = generate_filename(
             metadata["company"],
             metadata["position"],
-            base_dir="data/tailored_versions",
             extension=".tex"
         )
         print(f"📝 Auto-generated filename: {Path(output_path).name}")

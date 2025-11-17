@@ -1,16 +1,14 @@
 """
-Section Updater Tool for Resume Tailoring
-==========================================
+Section Updater for Resume Tailoring
+=====================================
 
-Tools to update specific sections of a LaTeX resume while preserving the rest.
+Utilities to update specific sections of a LaTeX resume while preserving the rest.
 """
 
-from strands import tool
 from pathlib import Path
 import re
 
 
-@tool
 def extract_section(latex_content: str, section_name: str) -> str:
     """
     Extract a specific section from LaTeX resume.
@@ -47,7 +45,6 @@ def extract_section(latex_content: str, section_name: str) -> str:
     return section_content
 
 
-@tool
 def replace_section(original_latex: str, section_name: str, new_section_latex: str) -> str:
     """
     Replace a specific section in the LaTeX resume with new content.
@@ -88,7 +85,6 @@ def replace_section(original_latex: str, section_name: str, new_section_latex: s
     return updated_latex
 
 
-@tool
 def update_subtitle(latex_content: str, new_subtitle: str) -> str:
     """
     Update the resume subtitle (job title).
@@ -112,7 +108,6 @@ def update_subtitle(latex_content: str, new_subtitle: str) -> str:
     return updated
 
 
-@tool
 def merge_sections(
     original_file: str,
     updated_sections: dict,
@@ -180,7 +175,6 @@ def merge_sections(
         return f"Error: {str(e)}"
 
 
-@tool
 def get_section_names(latex_content: str) -> list:
     """
     List all section names in the resume.
