@@ -98,9 +98,13 @@ docker-compose up -d
 ```
 
 **Volume Mounts (Persisted Data):**
-- `./data` → Resumes, job postings, and generated files
+- `./data` → Resumes, job postings, and generated files (outputs to `data/tailored_versions/`)
 - `./.env` → API credentials (not baked into image)
 - `./logs` → Application logs
+
+**Output Location Note:**
+- Docker saves tailored resumes to `./data/tailored_versions/` (via volume mount)
+- Local web server saves to `~/Desktop/tailored_resumes/`
 
 **Docker vs Local:**
 - **Use Docker if:** You want zero setup hassle, deploying to a server, or don't want to install LaTeX locally
@@ -160,12 +164,20 @@ If `pdflatex` is not on PATH, either install a TeX distribution or set `render_p
 
 ## How It Works
 
-- `prompts/system_prompt.txt` – concise GENERATE-mode instructions for the agent (no separate ANALYSIS mode).  
-- `tools/resume_helpers.py` – orchestrates metadata extraction, filename generation, section parsing, section-only prompting, merging, and optional PDF compilation.  
-- `tools/section_updater.py` – low-level helpers for extracting/replacing LaTeX sections and updating the subtitle.  
+- `prompts/system_prompt.txt` – concise GENERATE-mode instructions for the agent (no separate ANALYSIS mode).
+- `tools/resume_helpers.py` – orchestrates metadata extraction, filename generation, section parsing, section-only prompting, merging, and optional PDF compilation.
+- `tools/section_updater.py` – low-level helpers for extracting/replacing LaTeX sections and updating the subtitle.
 - `resume_tailor.ipynb` – interactive notebook that wires everything together, including the posting_details loader and the result display.
 
-The helper now resolves absolute paths before invoking `pdflatex`, so PDFs land in `data/tailored_versions/` instead of nested subdirectories. Filenames include timestamps (`<Company>_<Role>_<Timestamp>.tex/.pdf`) for version tracking.
+### Output Locations
+
+Generated resumes are saved to different locations depending on how you run the application:
+
+- **Web Interface (Local)**: `~/Desktop/tailored_resumes/` (Windows: `C:\Users\<you>\Desktop\tailored_resumes\`)
+- **Docker**: `./data/tailored_versions/` (via volume mount)
+- **Jupyter Notebook**: `data/tailored_versions/` (in project directory)
+
+Filenames follow the pattern `<Company>_<Position>.tex` (e.g., `RBC_Applied_AI_Data_Engineer.tex`).
 
 ---
 
@@ -222,8 +234,11 @@ python -m http.server 3000
   import os
   os.environ["PATH"] += ";C:\\Users\\<you>\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64"
   ```
-- **Nested `data/tailored_versions/data/...` folders** – this was caused by relative paths in older commits; the latest helper resolves absolute paths, so delete the nested folder and rerun.  
-- **Token usage concerns** – `tailor_resume_sections` extracts only the necessary sections and uses a trimmed system prompt. If you still need to reduce cost, disable `include_experience` unless required.  
+- **Can't find generated resumes** – Check the correct output location for your usage mode:
+  - Web Interface (Local): `~/Desktop/tailored_resumes/`
+  - Docker: `./data/tailored_versions/`
+  - Jupyter Notebook: `data/tailored_versions/`
+- **Token usage concerns** – `tailor_resume_sections` extracts only the necessary sections and uses a trimmed system prompt. If you still need to reduce cost, disable `include_experience` unless required.
 - **Model errors** – check the Strands log in `logs/` for the agent response, or rerun with a smaller model (e.g., `gpt-4o-mini`) if `gpt-5.1` is unnecessary.
 
 ---
@@ -248,13 +263,13 @@ python -m http.server 3000
 │   ├── job_postings/
 │   │   └── posting_details.txt     # optional default posting
 │   ├── original/                   # your source resumes
-│   └── tailored_versions/          # generated .tex/.pdf files
+│   └── tailored_versions/          # Notebook outputs (Web: ~/Desktop/tailored_resumes/)
 ├── logs/                           # Strands run logs
 ├── prompts/
 │   └── system_prompt.txt           # Agent instructions
 ├── tools/
+│   ├── __init__.py                 # Package exports
 │   ├── resume_helpers.py           # Main workflow orchestration
-│   ├── resume_tools.py             # Utility functions
 │   └── section_updater.py          # LaTeX section manipulation
 ├── resume_tailor.ipynb             # Jupyter notebook interface
 ├── requirements.txt                # Python dependencies
