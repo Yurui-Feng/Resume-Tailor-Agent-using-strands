@@ -20,9 +20,10 @@ This repository contains a Strands Agents workflow and supporting helpers that t
 - Python 3.10 or newer
 - An OpenAI API key **or** AWS Bedrock credentials (placed in `.env`)
 - A LaTeX resume (`data/original/*.tex`)
-- (Optional) A local TeX distribution if you want `render_pdf=True`:
+- (Optional) A local TeX distribution if you plan to compile PDFs **outside** the Docker image:
   - Windows: MiKTeX (add `C:\Users\<you>\AppData\Local\Programs\MiKTeX\miktex\bin\x64` to `PATH`)
   - macOS/Linux: TeX Live or MacTeX
+  - Docker already includes TeX Live, so no extra install is needed there.
 
 Install dependencies:
 
@@ -74,11 +75,11 @@ docker-compose up -d
 ```
 
 **What's included:**
-- ✅ Full LaTeX distribution (TeX Live) - no MiKTeX needed!
-- ✅ Python 3.11 with all dependencies
-- ✅ FastAPI web server + frontend
-- ✅ Auto-restarts on failure
-- ✅ Data persistence (resumes saved to ./data)
+- Full TeX Live installation inside the container (no local MiKTeX required)
+- Python 3.11 with all dependencies
+- FastAPI web server + frontend
+- Auto-restart policy (via Docker) to recover from failures
+- Data persistence by mounting `./data` and `./logs`
 
 **Docker Commands:**
 
@@ -102,13 +103,13 @@ docker-compose up -d
 - `./.env` → API credentials (not baked into image)
 - `./logs` → Application logs
 
-**Output Location Note:**
+**Output Location Note**
 - Docker saves tailored resumes to `./data/tailored_versions/` (via volume mount)
-- Local web server saves to `~/Desktop/tailored_resumes/`
+- The local web server (non-Docker) saves to `~/Desktop/tailored_resumes/`
 
-**Docker vs Local:**
-- **Use Docker if:** You want zero setup hassle, deploying to a server, or don't want to install LaTeX locally
-- **Use local if:** You're actively developing code or prefer Jupyter notebooks
+**Docker vs Local**
+- *Use Docker if* you want zero setup hassle, are deploying to a server, or prefer not to install LaTeX locally.
+- *Use local/Jupyter if* you are actively developing code and want direct notebook control.
 
 ### Option 2: Web Interface (Local)
 
@@ -221,15 +222,15 @@ python -m http.server 3000
 
 ## PDF Compilation Options
 
-- **Local TeX engine**: install MiKTeX (Windows) or TeX Live/MacTeX, then ensure `pdflatex` is on PATH. The helper already reports `pdflatex not found` if the binary cannot be located.  
-- **Remote/Overleaf**: set `render_pdf=False` and upload the generated `.tex` file. This is useful if corporate policies restrict local installations or if you prefer Overleaf’s tooling.  
-- **Docker**: run `pdflatex` via a TeX Live container and point the helper to that path if you prefer containerized builds.
+- **Docker**: TeX Live is preinstalled and runs automatically when `render_pdf=True`.
+- **Local TeX engine**: install MiKTeX (Windows) or TeX Live/MacTeX and ensure `pdflatex` is on PATH. This applies only to the web server or notebook running directly on your machine.
+- **Remote/Overleaf**: set `render_pdf=False` locally and upload the `.tex` file to Overleaf (or another online compiler) if you cannot install LaTeX.
 
 ---
 
 ## Troubleshooting
 
-- **`pdflatex not found`** – MiKTeX/Tex Live is missing from PATH. Either update PATH or run the helper cell before tailoring:
+- **`pdflatex not found`** (local runs only) – install MiKTeX/TeX Live and place the binary on PATH. Docker users can ignore this because TeX Live is bundled. Example for Windows:
   ```python
   import os
   os.environ["PATH"] += ";C:\\Users\\<you>\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64"
