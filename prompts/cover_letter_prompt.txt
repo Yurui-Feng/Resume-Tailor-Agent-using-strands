@@ -1,0 +1,49 @@
+
+> I’m applying for the following role:
+> **[Paste full job posting here]**
+>
+> Here is my resume:
+> **[Paste resume text here, or say “see attached PDF resume” if the tool supports file upload]**
+>
+> Please write a **1-page cover letter** tailored to this role with the following style and constraints:
+>
+> * **Tone:** straightforward, human, and modest. It should sound like something a real person would write in plain English, not like marketing copy or a research paper.
+> * **Length & structure:**
+>
+>   * 3–4 short paragraphs.
+>   * Each sentence should be clear and direct; avoid long, complex sentences.
+> * **Content focus:**
+>
+>   * In the second paragraph, focus on my **most relevant recent role(s)** and connect my work to the job posting requirements.
+>   * Mention my experience with **[add your key themes, e.g. “cloud, ML platforms, and generative AI applications”]** *only if* they clearly match the posting.
+>   * Briefly summarize my education in **one short paragraph or sentence** (no GPA bragging or long lists).
+> * **What to avoid:**
+>
+>   * Don’t use buzzwords like “cutting-edge,” “revolutionize,” “transformative,” “thrilled,” etc. Once or twice is okay, but keep it minimal.
+>   * Don’t over-sell or exaggerate; keep claims grounded in what’s on my resume.
+>   * Don’t repeat large chunks of the job description back to me.
+> * **Formatting:**
+>
+>   * Start with “Dear Hiring Manager,” (or a specific name if it’s given in the posting).
+>   * End with a simple closing like: “Thank you for considering my application.” followed by my name and basic contact info if needed.
+>
+> Before you give the final answer, quickly **mentally check** that:
+>
+> * The letter is specific to this role and company (mentions them by name).
+> * The language feels simple, natural, and non-“AI-ish.”
+
+---
+
+### Optional “quick” follow-up prompt
+
+Once you get a draft you like but it’s too wordy, you can use this on the *same* letter:
+
+> Please rewrite this cover letter so it’s simpler and more human:
+>
+> * Keep all the important concrete details and examples.
+> * Shorten sentences and remove filler phrases and buzzwords.
+> * Aim for 3–4 short paragraphs max.
+> * Keep the tone professional but relaxed, like a real person writing, not an AI.
+
+---
+
