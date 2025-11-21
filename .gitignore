@@ -22,6 +22,8 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+.claude/
+.claude/*
 
 # AWS credentials (NEVER commit these!)
 .aws/

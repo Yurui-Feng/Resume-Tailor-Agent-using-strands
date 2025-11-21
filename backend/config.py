@@ -14,7 +14,7 @@ PROMPTS_DIR = PROJECT_ROOT / "prompts"
 DATA_DIR = PROJECT_ROOT / "data"
 ORIGINAL_RESUME_DIR = DATA_DIR / "original"
 JOB_POSTINGS_DIR = DATA_DIR / "job_postings"
-OUTPUT_DIR = Path(os.path.expanduser("~")) / "Desktop" / "tailored_resumes"
+OUTPUT_DIR = DATA_DIR / "tailored_resumes"
 LOGS_DIR = PROJECT_ROOT / "logs"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 

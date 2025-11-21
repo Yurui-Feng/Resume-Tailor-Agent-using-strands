@@ -226,15 +226,52 @@ python -m http.server 3000
 - **Local TeX engine**: install MiKTeX (Windows) or TeX Live/MacTeX and ensure `pdflatex` is on PATH. This applies only to the web server or notebook running directly on your machine.
 - **Remote/Overleaf**: set `render_pdf=False` locally and upload the `.tex` file to Overleaf (or another online compiler) if you cannot install LaTeX.
 
+### Installing `pdflatex` on macOS
+
+Homebrew options put the binary at `/Library/TeX/texbin`:
+
+```bash
+# Smaller install (recommended): BasicTeX
+brew install --cask basictex
+
+# Or full install (~4GB): MacTeX without GUI
+# brew install --cask mactex-no-gui
+
+# Add TeX binaries to PATH for the current shell
+export PATH="/Library/TeX/texbin:$PATH"
+
+# (BasicTeX only) update package manager and core tools
+sudo tlmgr update --self
+
+# Resume template dependencies (BasicTeX):
+# Install required LaTeX packages for the resume template
+sudo tlmgr install collection-latexrecommended collection-fontsrecommended fira fontawesome preprint tools fontaxes anyfontsize
+
+# Verify
+hash -r            # refresh shell cache
+which pdflatex
+pdflatex --version
+```
+
+Notes:
+- The PATH addition is usually automatic; the export above forces it immediately and can be added to your shell profile if needed.
+- If you want the GUI preference pane and editors, use `brew install --cask mactex` (includes everything MacTeX ships).
+- **Required packages**: `preprint` (fullpage.sty), `tools` (tabularx.sty), `fontaxes`, `anyfontsize`, `fira`, `fontawesome`
+
 ---
 
 ## Troubleshooting
 
-- **`pdflatex not found`** (local runs only) – install MiKTeX/TeX Live and place the binary on PATH. Docker users can ignore this because TeX Live is bundled. Example for Windows:
+- **`pdflatex not found`** (local runs only) – install MiKTeX/TeX Live and place the binary on PATH. On macOS with Homebrew installs, ensure `/Library/TeX/texbin` is in `PATH`, run `hash -r`, then retry. Docker users can ignore this because TeX Live is bundled. Example for Windows:
   ```python
   import os
   os.environ["PATH"] += ";C:\\Users\\<you>\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64"
   ```
+- **Missing LaTeX packages** – with BasicTeX, you must install the resume dependencies manually:
+  ```bash
+  sudo tlmgr install collection-latexrecommended collection-fontsrecommended fira fontawesome preprint tools fontaxes anyfontsize
+  ```
+  This covers: `fullpage`, `enumitem`, `tabularx`, `fontawesome`, Fira fonts, `fontaxes`, and `anyfontsize`.
 - **Can't find generated resumes** – Check the correct output location for your usage mode:
   - Web Interface (Local): `~/Desktop/tailored_resumes/`
   - Docker: `./data/tailored_versions/`
