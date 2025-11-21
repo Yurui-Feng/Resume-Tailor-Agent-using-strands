@@ -298,10 +298,13 @@ def _post_process_sections(sections: Dict[str, str]) -> Dict[str, str]:
         if name == "Technical Proficiencies":
             text = _strip_label_prefix(text, "Technical Proficiencies")
             text = _strip_textbf(text)
+            text = _normalize_latex_commands(text)  # Ensure proper formatting
         elif name == "Professional Summary":
             text = _remove_year_counts(text)
+            text = _normalize_latex_commands(text)  # Ensure proper formatting
         else:
             text = _strip_label_prefix(text)
+            text = _normalize_latex_commands(text)  # Ensure proper formatting
 
         processed[name] = text
 
@@ -309,7 +312,8 @@ def _post_process_sections(sections: Dict[str, str]) -> Dict[str, str]:
 
 
 def _strip_label_prefix(text: str, label: Optional[str] = None) -> str:
-    """Remove leading label text (e.g., TECHNICAL PROFIENCIES:) before \\section."""
+    """Remove leading label text (e.g., TECHNICAL PROFIENCIES:) before \\section and trailing labels."""
+    # Remove label from the beginning
     if label:
         text = re.sub(
             rf"^\s*{re.escape(label)}\s*:\s*",
@@ -317,6 +321,15 @@ def _strip_label_prefix(text: str, label: Optional[str] = None) -> str:
             text,
             flags=re.IGNORECASE,
         )
+
+    # Remove any section labels that appear at the END (common AI mistake)
+    # Matches patterns like: "TECHNICAL PROFICIENCIES:" or "OPTIONAL EXPERIENCE:" at the end
+    text = re.sub(
+        r"\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:\s*$",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
 
     section_idx = text.find(r"\section")
     if section_idx > 0:
@@ -339,6 +352,26 @@ def _remove_year_counts(text: str) -> str:
     )
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     return cleaned.strip()
+
+
+def _normalize_latex_commands(text: str) -> str:
+    """Ensure LaTeX commands are properly formatted with newlines."""
+    # Ensure \section is on its own line
+    text = re.sub(r'\s*\\section\{', r'\n\\section{', text)
+
+    # Ensure \resumeEntryStart is on its own line (with proper indentation)
+    text = re.sub(r'\s*\\resumeEntryStart\s*', r'\n \\resumeEntryStart\n', text)
+
+    # Ensure each \resumeEntryS is on its own line with indentation
+    text = re.sub(r'\s*\\resumeEntryS\{', r'\n  \\resumeEntryS{', text)
+
+    # Ensure \resumeEntryEnd is on its own line
+    text = re.sub(r'\s*\\resumeEntryEnd\s*', r'\n \\resumeEntryEnd\n', text)
+
+    # Clean up excessive newlines (max 2 consecutive)
+    text = re.sub(r'\n{3,}', r'\n\n', text)
+
+    return text.strip()
 
 
 def tailor_resume_sections(
@@ -554,12 +587,23 @@ def _post_merge_cleanup(output_path: str) -> None:
 
     latex = output_file.read_text(encoding='utf-8')
 
+    # Remove stray section labels that appear after \resumeEntryEnd or elsewhere
+    # This catches patterns like: "\resumeEntryEnd TECHNICAL PROFICIENCIES:"
     latex = re.sub(
-        r"TECHNICAL\s+PROFIENCIES:\s*(?=\\section\{)",
+        r"(\\resumeEntryEnd)\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:",
+        r"\1",
+        latex,
+        flags=re.IGNORECASE,
+    )
+
+    # Also remove labels that appear before \section (old pattern, kept for safety)
+    latex = re.sub(
+        r"(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:\s*(?=\\section\{)",
         "",
         latex,
         flags=re.IGNORECASE,
     )
+
     latex = _remove_duplicate_sections(latex, "Technical Proficiencies")
     latex = _reposition_section_after(latex, "Technical Proficiencies", "Professional Experience")
 

@@ -158,6 +158,27 @@ Rules for output:
 - No tool call logs
 - No explanations
 - Just the sections in the format above
+- Each section label (SUBTITLE:, PROFESSIONAL SUMMARY:, etc.) must be on its own line
+- NEVER append section labels after LaTeX commands like \resumeEntryEnd
+- Each LaTeX command (\section, \resumeEntryStart, \resumeEntryS, \resumeEntryEnd) should be on its own line
+
+CORRECT FORMAT EXAMPLE:
+PROFESSIONAL SUMMARY:
+\section{\faUser}{Professional Summary}
+\resumeEntryStart
+\resumeEntryS{}{Software engineer focused on...}
+\resumeEntryEnd
+
+TECHNICAL PROFICIENCIES:
+\section{\faGears}{Technical Proficiencies}
+ \resumeEntryStart
+  \resumeEntryS{Languages}{Python, SQL, JavaScript}
+  \resumeEntryS{Cloud}{AWS, Docker, Terraform}
+ \resumeEntryEnd
+
+INCORRECT FORMAT (DO NOT DO THIS):
+\resumeEntryEnd TECHNICAL PROFICIENCIES:
+\section{\faGears}{Technical Proficiencies} \resumeEntryStart \resumeEntryS{Languages}{Python}
 
 The caller will parse these sections and inject them into the template.
 
