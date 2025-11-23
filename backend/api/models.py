@@ -38,6 +38,29 @@ class TailorRequest(BaseModel):
     )
 
 
+class CoverLetterRequest(BaseModel):
+    """Request model for generating a cover letter"""
+    job_posting: str = Field(
+        ...,
+        description="Full text of the job posting",
+        min_length=50,
+        examples=["Senior ML Engineer at Google\n\nWe are looking for..."]
+    )
+    original_resume_id: str = Field(
+        ...,
+        description="ID of the original resume (filename without extension)",
+        examples=["AI_engineer"]
+    )
+    tailored_result_id: Optional[str] = Field(
+        default=None,
+        description="ID of a previously tailored resume to use as context (from /api/results)"
+    )
+    render_pdf: bool = Field(
+        default=False,
+        description="Whether to compile PDF for the cover letter"
+    )
+
+
 class JobResponse(BaseModel):
     """Response after submitting a tailoring job"""
     job_id: str = Field(..., description="Unique job identifier")
@@ -55,6 +78,17 @@ class TailorResult(BaseModel):
     validation: str = Field(..., description="LaTeX validation result")
 
 
+class CoverLetterResult(BaseModel):
+    """Result of cover letter generation"""
+    tex_path: Optional[str] = Field(None, description="Path to generated .tex file")
+    pdf_path: Optional[str] = Field(None, description="Path to generated .pdf file")
+    text_path: Optional[str] = Field(None, description="Path to generated .txt file")
+    plain_text: str = Field(..., description="Plain text cover letter")
+    company: str = Field(..., description="Extracted company name")
+    position: str = Field(..., description="Extracted job position")
+    validation: str = Field(..., description="Validation/result message")
+
+
 class JobStatusResponse(BaseModel):
     """Response for job status check"""
     job_id: str = Field(..., description="Job identifier")
@@ -64,6 +98,18 @@ class JobStatusResponse(BaseModel):
     created_at: datetime = Field(..., description="Job creation timestamp")
     completed_at: Optional[datetime] = Field(None, description="Job completion timestamp")
     result: Optional[TailorResult] = Field(None, description="Result if completed")
+    error: Optional[str] = Field(None, description="Error message if failed")
+
+
+class CoverLetterStatusResponse(BaseModel):
+    """Response for cover letter job status check"""
+    job_id: str = Field(..., description="Job identifier")
+    status: JobStatus = Field(..., description="Current status")
+    progress: int = Field(default=0, ge=0, le=100, description="Progress percentage")
+    message: str = Field(default="", description="Status message")
+    created_at: datetime = Field(..., description="Job creation timestamp")
+    completed_at: Optional[datetime] = Field(None, description="Job completion timestamp")
+    result: Optional[CoverLetterResult] = Field(None, description="Result if completed")
     error: Optional[str] = Field(None, description="Error message if failed")
 
 
@@ -85,6 +131,20 @@ class ResultInfo(BaseModel):
     has_pdf: bool = Field(..., description="Whether .pdf file exists")
     tex_size: Optional[int] = Field(None, description=".tex file size in bytes")
     pdf_size: Optional[int] = Field(None, description=".pdf file size in bytes")
+
+
+class CoverLetterInfo(BaseModel):
+    """Information about a generated cover letter"""
+    id: str = Field(..., description="Result ID")
+    company: str = Field(..., description="Company name")
+    position: str = Field(..., description="Job position")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    has_tex: bool = Field(..., description="Whether .tex file exists")
+    has_pdf: bool = Field(..., description="Whether .pdf file exists")
+    has_txt: bool = Field(..., description="Whether .txt file exists")
+    tex_size: Optional[int] = Field(None, description=".tex file size in bytes")
+    pdf_size: Optional[int] = Field(None, description=".pdf file size in bytes")
+    txt_size: Optional[int] = Field(None, description=".txt file size in bytes")
 
 
 class HealthResponse(BaseModel):

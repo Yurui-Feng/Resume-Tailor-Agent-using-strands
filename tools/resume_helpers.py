@@ -21,11 +21,100 @@ from datetime import datetime
 
 # Import OUTPUT_DIR configuration
 try:
-    from backend.config import OUTPUT_DIR
+    from backend.config import OUTPUT_DIR, COVER_LETTER_OUTPUT_DIR
     DEFAULT_OUTPUT_DIR = str(OUTPUT_DIR)
+    DEFAULT_COVER_LETTER_DIR = str(COVER_LETTER_OUTPUT_DIR)
 except ImportError:
     # Fallback for notebook usage (backend.config may not be available)
     DEFAULT_OUTPUT_DIR = "data/tailored_versions"
+    DEFAULT_COVER_LETTER_DIR = "data/cover_letters"
+
+
+def _extract_packages(tex_content: str) -> list:
+    """Return a sorted list of packages declared via \\usepackage or \\RequirePackage."""
+    packages = []
+    for match in re.finditer(r'\\(?:usepackage|RequirePackage)(?:\[[^\]]*\])?\{([^}]+)\}', tex_content):
+        for name in match.group(1).split(","):
+            pkg = name.strip()
+            if pkg:
+                packages.append(pkg)
+    # Preserve input order while deduplicating
+    seen = {}
+    for pkg in packages:
+        seen.setdefault(pkg, True)
+    return list(seen.keys())
+
+
+def preflight_resume(tex_content: str, resume_path: Path) -> Optional[str]:
+    """
+    Quick sanity check to ensure we only process the supported single-file article template.
+
+    Returns:
+        None if ok, otherwise an error message describing the issue and listing detected packages.
+    """
+    packages = _extract_packages(tex_content)
+    package_msg = f"Packages detected: {', '.join(packages) if packages else 'none'}."
+
+    # Enforce article-based, single-file resumes
+    docclass_match = re.search(r'\\documentclass(?:\[[^\]]*\])?\{([^}]+)\}', tex_content, flags=re.IGNORECASE)
+    if not docclass_match:
+        return f"Unsupported resume: missing \\documentclass declaration. {package_msg}"
+
+    docclass = docclass_match.group(1).strip()
+    if docclass.lower() != "article":
+        return (
+            f"Unsupported LaTeX template '{docclass}'. "
+            "This workflow currently supports single-file 'article' resumes only (no external class files). "
+            f"{package_msg}"
+        )
+
+    # Block multi-file setups (e.g., Awesome CV's \\input{resume/...})
+    include_matches = re.findall(r'\\(?:input|include)\{([^}]+)\}', tex_content)
+    if include_matches:
+        # Normalize and check existence
+        missing = []
+        normalized = []
+        for inc in include_matches:
+            inc_clean = inc.strip()
+            normalized.append(inc_clean)
+            target = Path(inc_clean)
+            if not target.suffix:
+                target = target.with_suffix(".tex")
+            abs_target = (resume_path.parent / target).resolve()
+            if not abs_target.exists():
+                missing.append(inc_clean)
+
+        include_list = ", ".join(dict.fromkeys(normalized))
+        if missing:
+            missing_list = ", ".join(dict.fromkeys(missing))
+            return (
+                f"Unsupported resume: references external files ({include_list}) and some are missing [{missing_list}]. "
+                "Only single-file resumes are supported here. "
+                f"{package_msg}"
+            )
+        return (
+            f"Unsupported resume: references external files ({include_list}). "
+            "Only single-file resumes are supported here. "
+            f"{package_msg}"
+        )
+
+    # Ensure we can find the sections we know how to update
+    expected_sections = ["Professional Summary", "Technical Proficiencies"]
+    missing_sections = []
+    for sec in expected_sections:
+        pattern = rf'\\section\{{[^}}]*\}}\{{{re.escape(sec)}\}}'
+        if not re.search(pattern, tex_content):
+            missing_sections.append(sec)
+
+    if len(missing_sections) == len(expected_sections):
+        return (
+            "Unsupported resume: could not find expected sections "
+            "(Professional Summary, Technical Proficiencies). "
+            "Please use the bundled article template or align section headers with that format. "
+            f"{package_msg}"
+        )
+
+    return None
 
 
 def extract_job_metadata_with_llm(job_text: str, metadata_agent) -> Dict[str, str]:
@@ -101,7 +190,8 @@ def generate_filename(
     company: str,
     position: str,
     base_dir: str = None,
-    extension: str = ".tex"
+    extension: str = ".tex",
+    with_timestamp: bool = False
 ) -> str:
     """
     Generate sanitized filename with timestamp.
@@ -113,7 +203,7 @@ def generate_filename(
         extension: File extension (default: .tex)
 
     Returns:
-        Full path like "data/tailored_versions/Google_Senior_ML_Engineer_20251116_154530.tex"
+        Full path like "data/tailored_versions/Google_Senior_ML_Engineer.tex"
     """
     def sanitize(text: str) -> str:
         """Remove special characters and sanitize text for filename."""
@@ -132,9 +222,12 @@ def generate_filename(
 
     company_clean = sanitize(company)
     position_clean = sanitize(position)
-    timestamp = datetime.now().strftime("%Y%m%d")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    filename = f"{company_clean}_{position_clean}{extension}"
+    filename = f"{company_clean}_{position_clean}"
+    if with_timestamp:
+        filename = f"{filename}_{timestamp}"
+    filename = f"{filename}{extension}"
     return os.path.join(base_dir, filename)
 
 
@@ -374,6 +467,320 @@ def _normalize_latex_commands(text: str) -> str:
     return text.strip()
 
 
+def _escape_latex_text(text: str) -> str:
+    """Escape LaTeX-reserved characters in plain text."""
+    replacements = {
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+        "\\": r"\textbackslash{}",
+    }
+    return "".join(replacements.get(ch, ch) for ch in text)
+
+
+def extract_contact_info(resume_text: str) -> Dict[str, str]:
+    """Extract basic contact fields from the resume preamble."""
+    def _extract_def(name: str) -> Optional[str]:
+        pattern = rf"\\def\s+\\{name}\s+\{{([^}}]*)\}}"
+        match = re.search(pattern, resume_text)
+        return match.group(1).strip() if match else None
+
+    contact = {
+        "name": _extract_def("fullname") or "Candidate",
+        "email": _extract_def("emailtext") or "",
+        "phone": _extract_def("phonetext") or "",
+        "location": _extract_def("locationtext") or "",
+        "website": _extract_def("websitetext") or "",
+    }
+    return contact
+
+
+def _build_resume_snapshot(resume_text: str) -> str:
+    """Collect key sections for cover letter context without the full LaTeX."""
+    from tools.section_updater import extract_section, get_section_names
+
+    preferred_order = [
+        "Professional Summary",
+        "Professional Experience",
+        "Experience",
+        "Technical Proficiencies",
+        "Skills",
+        "Projects",
+        "Education",
+        "Certifications",
+    ]
+
+    available = get_section_names(resume_text)
+    snapshot_parts = []
+    seen = set()
+
+    def maybe_add(name: str) -> None:
+        if name in seen:
+            return
+        extracted = extract_section(resume_text, name)
+        if extracted and not extracted.startswith("Section '"):
+            snapshot_parts.append(f"{name}:\n{extracted}")
+            seen.add(name)
+
+    for name in preferred_order:
+        if name in available:
+            maybe_add(name)
+
+    if not snapshot_parts and available:
+        for name in available[:3]:
+            maybe_add(name)
+
+    snapshot = "\n\n".join(snapshot_parts) if snapshot_parts else resume_text
+
+    max_len = 6000
+    if len(snapshot) > max_len:
+        snapshot = snapshot[:max_len] + "\n\n...[truncated]"
+    return snapshot
+
+
+def _build_cover_letter_prompt(
+    job_text: str,
+    resume_snapshot: str,
+    metadata: Dict[str, str],
+    contact: Dict[str, str],
+    snapshot_label: str = "Resume Snapshot",
+) -> str:
+    """Compose the prompt for cover letter generation."""
+    company = metadata.get("company", "Unknown Company")
+    position = metadata.get("position", "Unknown Position")
+    name = contact.get("name", "Candidate")
+
+    return f"""
+JOB POSTING:
+<<<JOB_POSTING_START>>>
+{job_text}
+<<<JOB_POSTING_END>>>
+
+{snapshot_label} (facts only; LaTeX macros may appear—treat them as plain text):
+<<<RESUME_START>>>
+{resume_snapshot}
+<<<RESUME_END>>>
+
+Candidate name: {name}
+Company: {company}
+Role: {position}
+
+Return ONLY valid JSON with these fields:
+{{
+  "plain_text": "Letter with greeting and closing. Paragraphs separated by blank lines. End with the candidate name and optionally contact info.",
+  "latex_body": "Same content, LaTeX-safe, no preamble or document environment, paragraphs separated by blank lines, escape reserved characters."
+}}
+
+No markdown fences, no extra text.
+"""
+
+
+def _build_tailoring_prompt(
+    job_text: str,
+    sections_text: str,
+    include_experience: bool,
+) -> str:
+    """Compose the prompt for section-only resume tailoring."""
+    experience_line = (
+        "- Include Professional Experience updates for the most relevant roles."
+        if include_experience
+        else "- Professional Experience is optional; return SKIP if no changes are needed."
+    )
+    experience_scope = " and Professional Experience" if include_experience else ""
+
+    return f"""
+JOB POSTING:
+<<<JOB_POSTING_START>>>
+{job_text}
+<<<JOB_POSTING_END>>>
+
+CURRENT SECTIONS TO UPDATE:
+<<<SECTIONS_START>>>
+{sections_text}
+<<<SECTIONS_END>>>
+
+TASK:
+- Update the subtitle, Professional Summary, Technical Proficiencies{experience_scope} based on the job posting.
+{experience_line}
+- Use only the provided resume content; do not invent new employers, titles, or technologies.
+- Keep LaTeX commands intact and follow the Section-Only output contract from your system prompt (SUBTITLE, PROFESSIONAL SUMMARY, TECHNICAL PROFICIENCIES, OPTIONAL EXPERIENCE).
+"""
+
+
+def _parse_json_from_agent(result) -> Dict[str, str]:
+    """Normalize agent output and parse JSON content."""
+    if isinstance(result, str):
+        text = result
+    else:
+        text_candidate = None
+        for attr in ("output_text", "text", "response", "content", "output"):
+            value = getattr(result, attr, None)
+            if value and isinstance(value, str):
+                text_candidate = value
+                break
+        if text_candidate is None:
+            text_candidate = str(result)
+        text = text_candidate
+
+    if "```json" in text:
+        text = text.split("```json", 1)[1].split("```", 1)[0]
+    elif "```" in text:
+        text = text.split("```", 1)[1].split("```", 1)[0]
+
+    return json.loads(text.strip())
+
+
+def render_cover_letter_latex(
+    body_latex: str,
+    contact: Dict[str, str],
+    metadata: Dict[str, str],
+) -> str:
+    """Wrap the LaTeX body into a minimal, compile-ready document."""
+    name = _escape_latex_text(contact.get("name", "Candidate"))
+    email = _escape_latex_text(contact.get("email", ""))
+    phone = _escape_latex_text(contact.get("phone", ""))
+    location = _escape_latex_text(contact.get("location", ""))
+    website = _escape_latex_text(contact.get("website", ""))
+    company = _escape_latex_text(metadata.get("company", ""))
+    position = _escape_latex_text(metadata.get("position", ""))
+
+    contact_lines = [name]
+    if location:
+        contact_lines.append(location)
+
+    contact_line_two = " • ".join(
+        [part for part in [email, phone, website] if part]
+    )
+
+    role_line = ""
+    if company or position:
+        at_connector = " at " if company and position else ""
+        role_line = f"Re: {position}{at_connector}{company}"
+
+    today = datetime.now().strftime("%B %d, %Y")
+    header_block = "\n".join(line for line in [*contact_lines, contact_line_two] if line).strip()
+
+    return rf"""% Auto-generated cover letter
+\documentclass[11pt]{{article}}
+\usepackage[margin=1in]{{geometry}}
+\usepackage[T1]{{fontenc}}
+\usepackage[utf8]{{inputenc}}
+\usepackage{{lmodern}}
+\usepackage{{parskip}}
+\usepackage[hidelinks]{{hyperref}}
+
+\begin{{document}}
+\thispagestyle{{empty}}
+
+{header_block}
+
+{today}
+{role_line if role_line else ""}
+
+{body_latex.strip()}
+
+\end{{document}}
+"""
+
+
+def generate_cover_letter(
+    letter_agent,
+    metadata_extractor_agent,
+    job_text: str,
+    original_resume_path: str,
+    output_path: Optional[str] = None,
+    render_pdf: bool = True,
+    output_dir: Optional[str] = None,
+    resume_override_path: Optional[str] = None,
+    snapshot_label: Optional[str] = None,
+) -> Dict[str, Optional[str]]:
+    """
+    Generate a cover letter in plain text and LaTeX, optionally compiling to PDF.
+    """
+    resume_path = Path(resume_override_path or original_resume_path)
+    if not resume_path.exists():
+        raise FileNotFoundError(f"Resume not found at {resume_path}")
+
+    resume_text = resume_path.read_text(encoding="utf-8")
+
+    print("🔍 Extracting job metadata for cover letter...")
+    metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
+    print(f"   Company: {metadata['company']}")
+    print(f"   Position: {metadata['position']}")
+
+    contact = extract_contact_info(resume_text)
+
+    # Build prompt context
+    resume_snapshot = _build_resume_snapshot(resume_text)
+    label = snapshot_label or ("Tailored Resume Snapshot" if resume_override_path else "Original Resume Snapshot")
+    prompt = _build_cover_letter_prompt(job_text, resume_snapshot, metadata, contact, label)
+
+    # Call agent
+    print("🤖 Generating cover letter draft...")
+    agent_result = letter_agent(prompt)
+
+    # Parse output
+    parsed = _parse_json_from_agent(agent_result)
+    plain_text = parsed.get("plain_text", "").strip()
+    latex_body = parsed.get("latex_body", "").strip()
+
+    if not latex_body and plain_text:
+        latex_body = _escape_latex_text(plain_text)
+
+    # Resolve paths
+    base_dir = output_dir or DEFAULT_COVER_LETTER_DIR
+    if output_path is None:
+        output_path = generate_filename(
+            metadata["company"],
+            metadata["position"],
+            base_dir=base_dir,
+            extension=".tex",
+            with_timestamp=True,
+        )
+
+    tex_path = Path(output_path)
+    tex_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write LaTeX file
+    latex_document = render_cover_letter_latex(latex_body, contact, metadata)
+    tex_path.write_text(latex_document, encoding="utf-8")
+    print(f"   ✓ LaTeX saved: {tex_path}")
+
+    # Write plain text snapshot
+    text_path = tex_path.with_suffix(".txt")
+    if plain_text:
+        text_path.write_text(plain_text, encoding="utf-8")
+    else:
+        text_path.write_text(latex_body, encoding="utf-8")
+    print(f"   ✓ Text saved: {text_path}")
+
+    pdf_path = None
+    if render_pdf:
+        print("📄 Compiling cover letter PDF...")
+        pdf_result = compile_pdf(str(tex_path), cleanup=True)
+        if pdf_result.startswith("❌"):
+            print(pdf_result)
+        else:
+            pdf_path = pdf_result
+            print(f"   ✓ PDF created: {Path(pdf_path).name}")
+
+    return {
+        "tex_path": str(tex_path),
+        "text_path": str(text_path),
+        "pdf_path": pdf_path,
+        "plain_text": plain_text,
+        "company": metadata["company"],
+        "position": metadata["position"],
+        "validation": "✅ Cover letter generated",
+    }
+
+
 def tailor_resume_sections(
     section_generator_agent,
     metadata_extractor_agent,
@@ -440,6 +847,10 @@ def tailor_resume_sections(
 
     resume_text = resume_path.read_text(encoding='utf-8')
 
+    preflight_error = preflight_resume(resume_text, resume_path)
+    if preflight_error:
+        raise ValueError(preflight_error)
+
     sections_to_extract = ["Professional Summary", "Technical Proficiencies"]
     if include_experience:
         sections_to_extract.append("Professional Experience")
@@ -472,56 +883,12 @@ def tailor_resume_sections(
     print()
 
     # 4. Build prompt using only extracted sections
-    experience_instruction = "4) Professional Experience section (update most relevant roles)." if include_experience else ""
-
     if extracted:
         sections_text = "\n\n".join([f"=== {name} ===\n{content}" for name, content in extracted.items()])
     else:
         sections_text = resume_text
 
-    prompt = f"""
-You are now in GENERATE MODE (section-only).
-
-JOB POSTING:
-<<<JOB_POSTING_START>>>
-{job_text}
-<<<JOB_POSTING_END>>>
-
-CURRENT SECTIONS TO UPDATE:
-<<<SECTIONS_START>>>
-{sections_text}
-<<<SECTIONS_END>>>
-
-TASK:
-Based on the job posting, update ONLY these parts of the resume:
-
-1) Subtitle: a new job title that matches the posting (escaped for LaTeX).
-2) Professional Summary section.
-3) Technical Proficiencies section.
-{experience_instruction}
-
-STYLE NOTES:
-- Within the Technical Proficiencies section only, keep the individual skills/tools in plain text (no \\textbf{{}} around each item).
-- You may still use \\textbf{{}} in other sections (e.g., Professional Summary or Experience bullets) to emphasize technologies.
-- If you are updating the Professional Experience section, rephrase existing bullets to emphasize the job-posting skills/responsibilities (truthful, ATS-friendly).
-- Avoid mentioning total years of experience (no "X years" statements).
-
-Follow the SECTION-ONLY MODE rules from your system prompt.
-
-Return your answer EXACTLY in this format:
-
-SUBTITLE:
-<subtitle only>
-
-PROFESSIONAL SUMMARY:
-<LaTeX for the entire Professional Summary section>
-
-TECHNICAL PROFICIENCIES:
-<LaTeX for the entire Technical Proficiencies section>
-
-OPTIONAL EXPERIENCE:
-<LaTeX for the Professional Experience section, or the word "SKIP" if no changes are needed>
-"""
+    prompt = _build_tailoring_prompt(job_text, sections_text, include_experience)
 
     # 5. Call agent (generates modified sections only)
     print("🤖 Generating tailored sections...")

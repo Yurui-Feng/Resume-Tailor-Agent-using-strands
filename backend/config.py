@@ -15,11 +15,12 @@ DATA_DIR = PROJECT_ROOT / "data"
 ORIGINAL_RESUME_DIR = DATA_DIR / "original"
 JOB_POSTINGS_DIR = DATA_DIR / "job_postings"
 OUTPUT_DIR = DATA_DIR / "tailored_resumes"
+COVER_LETTER_OUTPUT_DIR = DATA_DIR / "cover_letters"
 LOGS_DIR = PROJECT_ROOT / "logs"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 # Ensure directories exist
-for directory in [DATA_DIR, ORIGINAL_RESUME_DIR, JOB_POSTINGS_DIR, OUTPUT_DIR, LOGS_DIR]:
+for directory in [DATA_DIR, ORIGINAL_RESUME_DIR, JOB_POSTINGS_DIR, OUTPUT_DIR, COVER_LETTER_OUTPUT_DIR, LOGS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 # API Configuration
@@ -58,6 +59,7 @@ HAS_BEDROCK = bool(AWS_BEARER_TOKEN_BEDROCK or (AWS_ACCESS_KEY_ID and AWS_SECRET
 # Default model settings
 DEFAULT_MAIN_MODEL = "gpt-5.1"  # Main agent for resume tailoring
 DEFAULT_METADATA_MODEL = "gpt-4o-mini"  # Lightweight agent for metadata extraction
+DEFAULT_COVER_LETTER_MODEL = DEFAULT_MAIN_MODEL  # Cover letter generation model
 
 # CORS settings
 ALLOWED_ORIGINS = [

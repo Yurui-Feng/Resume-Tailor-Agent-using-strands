@@ -8,6 +8,10 @@ const API_BASE = '/api';
 // Global state
 let currentJobId = null;
 let statusCheckInterval = null;
+let currentCoverLetterJobId = null;
+let coverLetterStatusInterval = null;
+let latestTailoredId = null;
+let availableResumes = [];
 
 // DOM Elements
 const elements = {
@@ -46,8 +50,32 @@ const elements = {
     errorMessage: document.getElementById('errorMessage'),
     retryBtn: document.getElementById('retryBtn'),
 
+    // Cover letter form + status
+    coverLetterForm: document.getElementById('coverLetterForm'),
+    coverUseTailored: document.getElementById('coverUseTailored'),
+    coverRenderPdf: document.getElementById('coverRenderPdf'),
+    coverSubmitBtn: document.getElementById('coverSubmitBtn'),
+    coverProcessingSection: document.getElementById('coverProcessingSection'),
+    coverProgressBar: document.getElementById('coverProgressBar'),
+    coverProgressText: document.getElementById('coverProgressText'),
+    coverProgressPercent: document.getElementById('coverProgressPercent'),
+    coverCancelBtn: document.getElementById('coverCancelBtn'),
+    coverResultsSection: document.getElementById('coverResultsSection'),
+    coverResultCompany: document.getElementById('coverResultCompany'),
+    coverResultPosition: document.getElementById('coverResultPosition'),
+    coverLetterText: document.getElementById('coverLetterText'),
+    coverDownloadTexBtn: document.getElementById('coverDownloadTexBtn'),
+    coverDownloadPdfBtn: document.getElementById('coverDownloadPdfBtn'),
+    coverDownloadTxtBtn: document.getElementById('coverDownloadTxtBtn'),
+    coverNewJobBtn: document.getElementById('coverNewJobBtn'),
+    coverErrorSection: document.getElementById('coverErrorSection'),
+    coverErrorMessage: document.getElementById('coverErrorMessage'),
+    coverRetryBtn: document.getElementById('coverRetryBtn'),
+    copyCoverLetterBtn: document.getElementById('copyCoverLetterBtn'),
+
     // History
-    historyList: document.getElementById('historyList')
+    resumeHistoryList: document.getElementById('resumeHistoryList'),
+    coverHistoryList: document.getElementById('coverHistoryList')
 };
 
 
@@ -64,7 +92,8 @@ async function init() {
     await loadResumes();
 
     // Load history
-    await loadHistory();
+    await loadResumeHistory();
+    await loadCoverLetterHistory();
 
     // Setup event listeners
     setupEventListeners();
@@ -100,6 +129,7 @@ async function loadResumes() {
     try {
         const response = await fetch(`${API_BASE}/resumes`);
         const resumes = await response.json();
+        availableResumes = resumes || [];
 
         elements.resumeSelect.innerHTML = '';
 
@@ -119,6 +149,7 @@ async function loadResumes() {
     } catch (error) {
         console.error('Failed to load resumes:', error);
         elements.resumeSelect.innerHTML = '<option value="">Error loading resumes</option>';
+        availableResumes = [];
     }
 }
 
@@ -126,17 +157,18 @@ async function loadResumes() {
 /**
  * Load results history
  */
-async function loadHistory() {
+async function loadResumeHistory() {
     try {
         const response = await fetch(`${API_BASE}/results`);
         const results = await response.json();
 
-        if (results.length === 0) {
-            elements.historyList.innerHTML = '<p class="text-gray-500 text-sm">No tailored resumes yet</p>';
-            return;
-        }
+    if (results.length === 0) {
+        elements.resumeHistoryList.innerHTML = '<p class="text-gray-500 text-sm">No tailored resumes yet</p>';
+        latestTailoredId = null;
+        return;
+    }
 
-        elements.historyList.innerHTML = results.map(result => `
+        elements.resumeHistoryList.innerHTML = results.map(result => `
             <div class="border border-gray-200 rounded-md p-4 hover:bg-gray-50 transition">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
@@ -154,10 +186,55 @@ async function loadHistory() {
             </div>
         `).join('');
 
+        latestTailoredId = results[0]?.id || null;
+        if (!latestTailoredId && elements.coverUseTailored) {
+            elements.coverUseTailored.checked = false;
+        }
         console.log(`Loaded ${results.length} results`);
     } catch (error) {
         console.error('Failed to load history:', error);
-        elements.historyList.innerHTML = '<p class="text-red-500 text-sm">Error loading history</p>';
+        elements.resumeHistoryList.innerHTML = '<p class="text-red-500 text-sm">Error loading history</p>';
+        latestTailoredId = null;
+    }
+}
+
+
+/**
+ * Load cover letter history
+ */
+async function loadCoverLetterHistory() {
+    try {
+        const response = await fetch(`${API_BASE}/cover-letter/results`);
+        const results = await response.json();
+
+        if (results.length === 0) {
+            elements.coverHistoryList.innerHTML = '<p class="text-gray-500 text-sm">No cover letters yet</p>';
+            return;
+        }
+
+        elements.coverHistoryList.innerHTML = results.map(result => `
+            <div class="border border-gray-200 rounded-md p-4 hover:bg-gray-50 transition">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-900">${escapeHtml(result.company)} - ${escapeHtml(result.position)}</h4>
+                        <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="text-green-700 hover:text-green-900" title="Download .txt"><i class="fas fa-file-alt"></i></a>` : ''}
+                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="text-blue-600 hover:text-blue-800" title="Download .tex"><i class="fas fa-file-code"></i></a>` : ''}
+                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="text-red-600 hover:text-red-800" title="Download .pdf"><i class="fas fa-file-pdf"></i></a>` : ''}
+                        <button onclick="deleteCoverLetter('${result.id}')" class="text-gray-400 hover:text-red-600" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        console.log(`Loaded ${results.length} cover letters`);
+    } catch (error) {
+        console.error('Failed to load cover letter history:', error);
+        elements.coverHistoryList.innerHTML = '<p class="text-red-500 text-sm">Error loading cover letters</p>';
     }
 }
 
@@ -168,6 +245,7 @@ async function loadHistory() {
 function setupEventListeners() {
     // Form submission
     elements.tailorForm.addEventListener('submit', handleFormSubmit);
+    elements.coverLetterForm.addEventListener('submit', handleCoverLetterSubmit);
 
     // Character count
     elements.jobPosting.addEventListener('input', updateCharCount);
@@ -178,9 +256,11 @@ function setupEventListeners() {
 
     // New job button
     elements.newJobBtn.addEventListener('click', resetForm);
+    elements.coverNewJobBtn.addEventListener('click', resetCoverLetterForm);
 
     // Retry button
     elements.retryBtn.addEventListener('click', resetForm);
+    elements.coverRetryBtn.addEventListener('click', resetCoverLetterForm);
 
     // Cancel button
     elements.cancelBtn.addEventListener('click', () => {
@@ -189,6 +269,15 @@ function setupEventListeners() {
             resetForm();
         }
     });
+    elements.coverCancelBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to cancel this cover letter job?')) {
+            stopCoverLetterStatusChecking();
+            resetCoverLetterForm();
+        }
+    });
+
+    // Copy cover letter text
+    elements.copyCoverLetterBtn.addEventListener('click', copyCoverLetterText);
 }
 
 
@@ -280,6 +369,66 @@ async function handleFormSubmit(e) {
 
 
 /**
+ * Handle cover letter submission
+ */
+async function handleCoverLetterSubmit(e) {
+    e.preventDefault();
+
+    elements.coverResultsSection.classList.add('hidden');
+    elements.coverErrorSection.classList.add('hidden');
+    elements.coverLetterText.textContent = '';
+
+    const resumeId = elements.resumeSelect ? elements.resumeSelect.value : (availableResumes[0]?.id || '');
+    const useTailored = elements.coverUseTailored ? elements.coverUseTailored.checked : false;
+    const tailoredId = useTailored ? latestTailoredId : null;
+    const jobPosting = elements.jobPosting ? elements.jobPosting.value.trim() : '';
+    const renderPdf = elements.coverRenderPdf.checked;
+
+    if (!resumeId) {
+        showCoverLetterError('Please select a resume');
+        return;
+    }
+
+    // Reuse main job posting; assume it already passed validation in the main form
+
+    try {
+        elements.coverSubmitBtn.disabled = true;
+        elements.coverSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        const response = await fetch(`${API_BASE}/cover-letter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                job_posting: jobPosting,
+                original_resume_id: resumeId,
+                tailored_result_id: tailoredId || null,
+                render_pdf: renderPdf
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to submit cover letter job');
+        }
+
+        const data = await response.json();
+        currentCoverLetterJobId = data.job_id;
+
+        showCoverLetterProcessing();
+        startCoverLetterStatusChecking();
+
+    } catch (error) {
+        console.error('Cover letter submission error:', error);
+        showCoverLetterError(error.message);
+        elements.coverSubmitBtn.disabled = false;
+        elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+    }
+}
+
+
+/**
  * Start checking job status
  */
 function startStatusChecking() {
@@ -321,7 +470,7 @@ async function checkJobStatus() {
         if (data.status === 'completed') {
             stopStatusChecking();
             showResults(data.result);
-            await loadHistory(); // Refresh history
+            await loadResumeHistory(); // Refresh history
         } else if (data.status === 'failed') {
             stopStatusChecking();
             showError(data.error || 'Job failed');
@@ -330,6 +479,57 @@ async function checkJobStatus() {
     } catch (error) {
         console.error('Status check error:', error);
         // Continue checking
+    }
+}
+
+
+/**
+ * Start checking cover letter job status
+ */
+function startCoverLetterStatusChecking() {
+    coverLetterStatusInterval = setInterval(checkCoverLetterStatus, 2000);
+    checkCoverLetterStatus();
+}
+
+
+/**
+ * Stop checking cover letter job status
+ */
+function stopCoverLetterStatusChecking() {
+    if (coverLetterStatusInterval) {
+        clearInterval(coverLetterStatusInterval);
+        coverLetterStatusInterval = null;
+    }
+}
+
+
+/**
+ * Check cover letter job status
+ */
+async function checkCoverLetterStatus() {
+    if (!currentCoverLetterJobId) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/cover-letter/jobs/${currentCoverLetterJobId}/status`);
+
+        if (!response.ok) {
+            throw new Error('Failed to check status');
+        }
+
+        const data = await response.json();
+
+        updateCoverLetterProgress(data.progress, data.message);
+
+        if (data.status === 'completed') {
+            stopCoverLetterStatusChecking();
+            showCoverLetterResults(data.result);
+            await loadCoverLetterHistory();
+        } else if (data.status === 'failed') {
+            stopCoverLetterStatusChecking();
+            showCoverLetterError(data.error || 'Job failed');
+        }
+    } catch (error) {
+        console.error('Cover letter status check error:', error);
     }
 }
 
@@ -403,6 +603,96 @@ function resetForm() {
 
 
 /**
+ * Cover letter helpers
+ */
+function showCoverLetterProcessing() {
+    elements.coverLetterForm.classList.add('opacity-50', 'pointer-events-none');
+    elements.coverProcessingSection.classList.remove('hidden');
+    updateCoverLetterProgress(0, 'Starting...');
+}
+
+
+function updateCoverLetterProgress(percent, message) {
+    elements.coverProgressBar.style.width = `${percent}%`;
+    elements.coverProgressPercent.textContent = `${percent}%`;
+    elements.coverProgressText.textContent = message;
+}
+
+
+function showCoverLetterResults(result) {
+    elements.coverProcessingSection.classList.add('hidden');
+    elements.coverResultsSection.classList.remove('hidden');
+    elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
+
+    elements.coverSubmitBtn.disabled = false;
+    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+
+    elements.coverResultCompany.textContent = result.company || '';
+    elements.coverResultPosition.textContent = result.position || '';
+    elements.coverLetterText.textContent = result.plain_text || '';
+
+    const resultId = (result.tex_path || result.text_path || '').split(/[/\\]/).pop().replace(/\.(tex|txt)$/i, '');
+
+    elements.coverDownloadTexBtn.href = result.tex_path ? `${API_BASE}/cover-letter/results/${resultId}/tex` : '#';
+    elements.coverDownloadTexBtn.style.display = result.tex_path ? 'block' : 'none';
+    elements.coverDownloadPdfBtn.href = result.pdf_path ? `${API_BASE}/cover-letter/results/${resultId}/pdf` : '#';
+    elements.coverDownloadPdfBtn.style.display = result.pdf_path ? 'block' : 'none';
+    elements.coverDownloadTxtBtn.href = result.text_path ? `${API_BASE}/cover-letter/results/${resultId}/text` : '#';
+    elements.coverDownloadTxtBtn.style.display = result.text_path ? 'block' : 'none';
+
+    console.log('✅ Cover letter displayed');
+}
+
+
+function showCoverLetterError(message) {
+    elements.coverProcessingSection.classList.add('hidden');
+    elements.coverErrorSection.classList.remove('hidden');
+    elements.coverErrorMessage.textContent = message;
+
+    elements.coverSubmitBtn.disabled = false;
+    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+    elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
+}
+
+
+function resetCoverLetterForm() {
+    elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
+    elements.coverProcessingSection.classList.add('hidden');
+    elements.coverResultsSection.classList.add('hidden');
+    elements.coverErrorSection.classList.add('hidden');
+
+    elements.coverSubmitBtn.disabled = false;
+    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+
+    updateCoverLetterProgress(0, 'Waiting to start...');
+
+    if (elements.coverUseTailored) {
+        elements.coverUseTailored.checked = true;
+    }
+
+    currentCoverLetterJobId = null;
+    stopCoverLetterStatusChecking();
+}
+
+
+async function copyCoverLetterText() {
+    const text = elements.coverLetterText.textContent || '';
+    if (!text) return;
+
+    try {
+        await navigator.clipboard.writeText(text);
+        elements.copyCoverLetterBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        setTimeout(() => {
+            elements.copyCoverLetterBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        }, 1500);
+    } catch (error) {
+        console.error('Copy failed:', error);
+        alert('Unable to copy text. Please copy manually.');
+    }
+}
+
+
+/**
  * Handle file upload
  */
 async function handleFileUpload(e) {
@@ -471,7 +761,34 @@ async function deleteResult(resultId) {
         }
 
         console.log(`Deleted result: ${resultId}`);
-        await loadHistory(); // Refresh history
+        await loadResumeHistory(); // Refresh history
+
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert(`Failed to delete: ${error.message}`);
+    }
+}
+
+
+/**
+ * Delete a cover letter result
+ */
+async function deleteCoverLetter(resultId) {
+    if (!confirm('Are you sure you want to delete this cover letter?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/cover-letter/results/${resultId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Delete failed');
+        }
+
+        console.log(`Deleted cover letter: ${resultId}`);
+        await loadCoverLetterHistory();
 
     } catch (error) {
         console.error('Delete error:', error);

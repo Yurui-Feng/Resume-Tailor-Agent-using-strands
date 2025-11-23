@@ -10,7 +10,9 @@ from .resume_helpers import (
     parse_sections,
     extract_job_metadata_with_llm,
     generate_filename,
-    compile_pdf
+    compile_pdf,
+    generate_cover_letter,
+    extract_contact_info,
 )
 
 from .section_updater import (
@@ -30,6 +32,8 @@ __all__ = [
     'extract_job_metadata_with_llm',
     'generate_filename',
     'compile_pdf',
+    'generate_cover_letter',
+    'extract_contact_info',
 
     # LaTeX section manipulation
     'extract_section',

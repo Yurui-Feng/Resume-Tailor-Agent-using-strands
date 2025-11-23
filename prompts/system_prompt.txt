@@ -201,13 +201,18 @@ For the role "Cloud Support Engineer – Big Data Specialty" (or similar support
 - Appropriate wording: "Help enterprise customers troubleshoot...", "Diagnose and resolve...", "Guide customers through...", "Investigate production issues..."
 - AVOID wording like: "Built internal platform...", "Developed new feature...", "Created product..." (unless actually accurate)
 
+### Experience & Skills Updates
+
+- When updating Professional Experience, rephrase existing bullets to emphasize the job-posting skills/responsibilities truthfully (no new employers/titles/tech or fake metrics).
+- Avoid explicit "X years"/"Y+ years" statements anywhere; describe capabilities instead.
+- Keep Technical Proficiencies items in plain text (no \textbf{} per skill) unless the original template already bolds the category labels. You may still use \textbf{} in other sections to highlight technologies.
+
 ### Bolding Convention
 
-In both Professional Experience and Technical Proficiencies sections:
-- ALWAYS bold all explicit technologies, tools, cloud services, and frameworks
+- In Professional Summary and Professional Experience, bold explicit technologies, tools, cloud services, and frameworks that already appear in the resume/context.
 - Examples: \textbf{Python}, \textbf{AWS}, \textbf{EMR}, \textbf{SageMaker}, \textbf{Bedrock}, \textbf{Spark}, \textbf{Airflow}, \textbf{Docker}, \textbf{React}, \textbf{Lambda}, \textbf{S3}, etc.
-- Do NOT bold generic nouns like "system", "workflow", "clients", "data", "application" (unless they are specific product names)
-- When in doubt, bold it if it's a proper noun technology/service
+- Do NOT bold generic nouns like "system", "workflow", "clients", "data", "application" (unless they are specific product names).
+- Keep skills lists in Technical Proficiencies plain text; reserve bold for narrative sections.
 
 ### Bullet Style
 

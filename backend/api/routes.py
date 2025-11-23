@@ -3,20 +3,36 @@ API Routes for Resume Tailor
 """
 import os
 from pathlib import Path
+import re
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.responses import FileResponse
 
 from backend.api.models import (
-    TailorRequest, JobResponse, JobStatusResponse, JobStatus,
-    ResumeInfo, ResultInfo, HealthResponse, TailorResult
+    TailorRequest,
+    JobResponse,
+    JobStatusResponse,
+    JobStatus,
+    ResumeInfo,
+    ResultInfo,
+    HealthResponse,
+    TailorResult,
+    CoverLetterRequest,
+    CoverLetterStatusResponse,
+    CoverLetterResult,
+    CoverLetterInfo,
 )
 from backend.config import (
-    ORIGINAL_RESUME_DIR, OUTPUT_DIR, API_VERSION,
-    HAS_OPENAI, HAS_BEDROCK
+    ORIGINAL_RESUME_DIR,
+    OUTPUT_DIR,
+    COVER_LETTER_OUTPUT_DIR,
+    API_VERSION,
+    HAS_OPENAI,
+    HAS_BEDROCK,
 )
 from backend.services.resume_service import resume_service
+from backend.services.cover_letter_service import cover_letter_service
 
 
 router = APIRouter(prefix="/api", tags=["resume-tailor"])
@@ -123,6 +139,78 @@ async def get_job_status(job_id: str):
     return response
 
 
+@router.post("/cover-letter", response_model=JobResponse, status_code=202)
+async def generate_cover_letter(request: CoverLetterRequest, background_tasks: BackgroundTasks):
+    """
+    Start a cover letter generation job
+    """
+    resume_path = ORIGINAL_RESUME_DIR / f"{request.original_resume_id}.tex"
+    if not resume_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Resume '{request.original_resume_id}' not found. Available resumes: {list_resume_ids()}"
+        )
+
+    if request.tailored_result_id:
+        tailored_candidate = OUTPUT_DIR / f"{request.tailored_result_id}.tex"
+        if not tailored_candidate.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Tailored resume '{request.tailored_result_id}' not found. Check /api/results for valid IDs."
+            )
+
+    job_id = cover_letter_service.create_job(
+        job_posting=request.job_posting,
+        original_resume_id=request.original_resume_id,
+        render_pdf=request.render_pdf,
+        tailored_result_id=request.tailored_result_id
+    )
+
+    background_tasks.add_task(cover_letter_service.process_job, job_id)
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING,
+        created_at=datetime.now(),
+        message="Cover letter job submitted. Check status at /api/cover-letter/jobs/{job_id}/status"
+    )
+
+
+@router.get("/cover-letter/jobs/{job_id}/status", response_model=CoverLetterStatusResponse)
+async def get_cover_letter_status(job_id: str):
+    """
+    Get status of a cover letter job
+    """
+    job = cover_letter_service.get_job_status(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    response = CoverLetterStatusResponse(
+        job_id=job["id"],
+        status=job["status"],
+        progress=job["progress"],
+        message=job["message"],
+        created_at=job["created_at"],
+        completed_at=job["completed_at"],
+        error=job["error"]
+    )
+
+    if job["status"] == JobStatus.COMPLETED and job["result"]:
+        result_dict = job["result"]
+        response.result = CoverLetterResult(
+            tex_path=result_dict.get("tex_path"),
+            pdf_path=result_dict.get("pdf_path"),
+            text_path=result_dict.get("text_path"),
+            plain_text=result_dict.get("plain_text", ""),
+            company=result_dict.get("company", "Unknown"),
+            position=result_dict.get("position", "Unknown"),
+            validation=result_dict.get("validation", "")
+        )
+
+    return response
+
+
 @router.get("/resumes", response_model=List[ResumeInfo])
 async def list_resumes():
     """
@@ -213,7 +301,8 @@ async def list_results():
     # Build result info
     for base_name, files in result_groups.items():
         # Parse filename: Company_Position_TIMESTAMP
-        parts = base_name.split('_')
+        base_clean = re.sub(r'_\d{8}(?:_\d{6})?$', '', base_name)
+        parts = base_clean.split('_')
         if len(parts) >= 2:
             # Find timestamp (last part or second-to-last)
             company_parts = []
@@ -319,6 +408,152 @@ async def delete_result(result_id: str):
 
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Result {result_id} not found")
+
+    return {
+        "message": f"Deleted {', '.join(deleted)} files for {result_id}",
+        "deleted_files": deleted
+    }
+
+
+@router.get("/cover-letter/results", response_model=List[CoverLetterInfo])
+async def list_cover_letters():
+    """
+    List all generated cover letters
+    """
+    results = []
+
+    if not COVER_LETTER_OUTPUT_DIR.exists():
+        return results
+
+    result_groups = {}
+    for file_path in COVER_LETTER_OUTPUT_DIR.glob("*"):
+        if file_path.suffix in ['.tex', '.pdf', '.txt']:
+            base_name = file_path.stem
+            if base_name not in result_groups:
+                result_groups[base_name] = {"tex": None, "pdf": None, "txt": None}
+
+            if file_path.suffix == '.tex':
+                result_groups[base_name]["tex"] = file_path
+            elif file_path.suffix == '.pdf':
+                result_groups[base_name]["pdf"] = file_path
+            elif file_path.suffix == '.txt':
+                result_groups[base_name]["txt"] = file_path
+
+    for base_name, files in result_groups.items():
+        base_clean = re.sub(r'_\d{8}(?:_\d{6})?$', '', base_name)
+        parts = base_clean.split('_')
+        if len(parts) >= 2:
+            company_parts = []
+            position_parts = []
+            found_timestamp = False
+
+            for i, part in enumerate(parts):
+                if part.isdigit() and len(part) >= 8:
+                    company_parts = parts[:i-1] if i > 0 else []
+                    position_parts = [parts[i-1]] if i > 0 else []
+                    found_timestamp = True
+                    break
+
+            if not found_timestamp:
+                company_parts = [parts[0]]
+                position_parts = parts[1:]
+
+            company = '_'.join(company_parts) if company_parts else "Unknown"
+            position = '_'.join(position_parts) if position_parts else "Unknown"
+        else:
+            company = "Unknown"
+            position = "Unknown"
+
+        created_at = datetime.now()
+        if files["tex"]:
+            created_at = datetime.fromtimestamp(files["tex"].stat().st_mtime)
+        elif files["txt"]:
+            created_at = datetime.fromtimestamp(files["txt"].stat().st_mtime)
+
+        results.append(CoverLetterInfo(
+            id=base_name,
+            company=company,
+            position=position,
+            created_at=created_at,
+            has_tex=files["tex"] is not None,
+            has_pdf=files["pdf"] is not None,
+            has_txt=files["txt"] is not None,
+            tex_size=files["tex"].stat().st_size if files["tex"] else None,
+            pdf_size=files["pdf"].stat().st_size if files["pdf"] else None,
+            txt_size=files["txt"].stat().st_size if files["txt"] else None
+        ))
+
+    return sorted(results, key=lambda r: r.created_at, reverse=True)
+
+
+@router.get("/cover-letter/results/{result_id}/tex")
+async def download_cover_letter_tex(result_id: str):
+    """Download .tex file for a cover letter."""
+    file_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.tex"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Cover letter {result_id}.tex not found")
+
+    return FileResponse(
+        path=file_path,
+        media_type="application/x-tex",
+        filename=f"{result_id}.tex"
+    )
+
+
+@router.get("/cover-letter/results/{result_id}/pdf")
+async def download_cover_letter_pdf(result_id: str):
+    """Download .pdf file for a cover letter."""
+    file_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.pdf"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Cover letter {result_id}.pdf not found")
+
+    return FileResponse(
+        path=file_path,
+        media_type="application/pdf",
+        filename=f"{result_id}.pdf"
+    )
+
+
+@router.get("/cover-letter/results/{result_id}/text")
+async def download_cover_letter_text(result_id: str):
+    """Download .txt file for a cover letter."""
+    file_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.txt"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Cover letter {result_id}.txt not found")
+
+    return FileResponse(
+        path=file_path,
+        media_type="text/plain",
+        filename=f"{result_id}.txt"
+    )
+
+
+@router.delete("/cover-letter/results/{result_id}")
+async def delete_cover_letter(result_id: str):
+    """Delete a cover letter result (.tex/.pdf/.txt)."""
+    tex_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.tex"
+    pdf_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.pdf"
+    txt_path = COVER_LETTER_OUTPUT_DIR / f"{result_id}.txt"
+
+    deleted = []
+
+    if tex_path.exists():
+        tex_path.unlink()
+        deleted.append(".tex")
+
+    if pdf_path.exists():
+        pdf_path.unlink()
+        deleted.append(".pdf")
+
+    if txt_path.exists():
+        txt_path.unlink()
+        deleted.append(".txt")
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Cover letter {result_id} not found")
 
     return {
         "message": f"Deleted {', '.join(deleted)} files for {result_id}",
