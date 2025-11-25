@@ -58,7 +58,10 @@ if FRONTEND_DIR.exists():
         """Serve the main index.html"""
         index_path = FRONTEND_DIR / "index.html"
         if index_path.exists():
-            return HTMLResponse(content=index_path.read_text(encoding='utf-8'))
+            return HTMLResponse(
+                content=index_path.read_text(encoding='utf-8'),
+                headers={"Cache-Control": "no-store"}
+            )
         return RedirectResponse(url="/docs")
 
     # Mount static files for assets (js, css, etc)
@@ -75,7 +78,8 @@ if FRONTEND_DIR.exists():
             content_type, _ = mimetypes.guess_type(str(static_file))
             return FileResponse(
                 path=static_file,
-                media_type=content_type
+                media_type=content_type,
+                headers={"Cache-Control": "no-store"}
             )
 
         # If file not found and not an API route, serve index.html (for SPA routing)

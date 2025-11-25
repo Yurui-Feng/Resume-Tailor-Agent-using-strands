@@ -78,6 +78,14 @@ const elements = {
     coverHistoryList: document.getElementById('coverHistoryList')
 };
 
+function isResumeJobActive() {
+    return Boolean(currentJobId && statusCheckInterval);
+}
+
+function isCoverLetterJobActive() {
+    return Boolean(currentCoverLetterJobId && coverLetterStatusInterval);
+}
+
 
 /**
  * Initialize application
@@ -176,9 +184,9 @@ async function loadResumeHistory() {
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
                     <div class="flex flex-wrap gap-2 justify-end">
-                        ${result.has_tex ? `<a href="${API_BASE}/results/${result.id}/tex" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/results/${result.id}/pdf" class="brutalist-button brutalist-button--compact brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
-                        <button type="button" onclick="deleteResult('${result.id}')" class="brutalist-button brutalist-button--compact brutalist-button--crimson">
+                        ${result.has_tex ? `<a href="${API_BASE}/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
+                        ${result.has_pdf ? `<a href="${API_BASE}/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
+                        <button type="button" onclick="deleteResult('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">
                             Delete
                         </button>
                     </div>
@@ -220,10 +228,10 @@ async function loadCoverLetterHistory() {
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
                     <div class="flex flex-wrap gap-2 justify-end">
-                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEXT</a>` : ''}
-                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="brutalist-button brutalist-button--compact brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
-                        <button type="button" onclick="deleteCoverLetter('${result.id}')" class="brutalist-button brutalist-button--compact brutalist-button--crimson">
+                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
+                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="brutalist-button brutalist-button--mini brutalist-button--butter" target="_blank" rel="noopener noreferrer">TEXT</a>` : ''}
+                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
+                        <button type="button" onclick="deleteCoverLetter('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">
                             Delete
                         </button>
                     </div>
@@ -325,6 +333,11 @@ async function handleFormSubmit(e) {
         return;
     }
 
+    if (isCoverLetterJobActive()) {
+        showError('Please finish or cancel the cover letter job before tailoring a resume.');
+        return;
+    }
+
     // Submit job
     try {
         elements.submitBtn.disabled = true;
@@ -386,6 +399,11 @@ async function handleCoverLetterSubmit(e) {
 
     if (!resumeId) {
         showCoverLetterError('Please select a resume');
+        return;
+    }
+
+    if (isResumeJobActive()) {
+        showCoverLetterError('Please finish or cancel the resume tailoring job before creating a cover letter.');
         return;
     }
 
@@ -457,6 +475,13 @@ async function checkJobStatus() {
     try {
         const response = await fetch(`${API_BASE}/jobs/${currentJobId}/status`);
 
+        if (response.status === 404) {
+            stopStatusChecking();
+            currentJobId = null;
+            showError('Resume job not found. Please resubmit.');
+            return;
+        }
+
         if (!response.ok) {
             throw new Error('Failed to check status');
         }
@@ -469,10 +494,12 @@ async function checkJobStatus() {
         // Handle status
         if (data.status === 'completed') {
             stopStatusChecking();
+            currentJobId = null;
             showResults(data.result);
             await loadResumeHistory(); // Refresh history
         } else if (data.status === 'failed') {
             stopStatusChecking();
+            currentJobId = null;
             showError(data.error || 'Job failed');
         }
 
@@ -512,6 +539,13 @@ async function checkCoverLetterStatus() {
     try {
         const response = await fetch(`${API_BASE}/cover-letter/jobs/${currentCoverLetterJobId}/status`);
 
+        if (response.status === 404) {
+            stopCoverLetterStatusChecking();
+            currentCoverLetterJobId = null;
+            showCoverLetterError('Cover letter job not found. Please resubmit.');
+            return;
+        }
+
         if (!response.ok) {
             throw new Error('Failed to check status');
         }
@@ -522,10 +556,12 @@ async function checkCoverLetterStatus() {
 
         if (data.status === 'completed') {
             stopCoverLetterStatusChecking();
+            currentCoverLetterJobId = null;
             showCoverLetterResults(data.result);
             await loadCoverLetterHistory();
         } else if (data.status === 'failed') {
             stopCoverLetterStatusChecking();
+            currentCoverLetterJobId = null;
             showCoverLetterError(data.error || 'Job failed');
         }
     } catch (error) {

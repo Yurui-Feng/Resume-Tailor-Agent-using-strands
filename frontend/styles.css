@@ -12,6 +12,7 @@
     --brutal-shadow: #111111;
     --brutal-accent: #223a70;
     --brutal-highlight: #f4c542;
+    --brutal-butter: #fff3b4;
     --brutal-crimson: #a22041;
     --brutal-emerald: #0b6b3a;
     --brutal-muted: #1f2937;
@@ -358,6 +359,11 @@ body.brutalist-body::after {
     color: #ffffff;
 }
 
+.brutalist-button--butter {
+    background: var(--brutal-butter);
+    color: #4a3b06;
+}
+
 .brutalist-button--ghost {
     background: transparent;
 }
@@ -365,6 +371,19 @@ body.brutalist-body::after {
 .brutalist-button--compact {
     width: auto;
     padding-inline: 1.5rem;
+}
+
+.brutalist-button--mini {
+    width: auto;
+    min-width: 0;
+    font-size: 0.74rem;
+    line-height: 0.95;
+    padding: 0.2rem 0.6rem;
+    gap: 0.2rem;
+    box-shadow: 1px 1px 0 0 var(--brutal-shadow);
+    border-width: 2px;
+    text-transform: none;
+    letter-spacing: 0.02em;
 }
 
 .brutalist-pill {
