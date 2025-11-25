@@ -18,16 +18,53 @@ import json
 import subprocess
 import tempfile
 from datetime import datetime
+import signal
+from functools import wraps
+import threading
 
 # Import OUTPUT_DIR configuration
 try:
-    from backend.config import OUTPUT_DIR, COVER_LETTER_OUTPUT_DIR
+    from backend.config import OUTPUT_DIR, COVER_LETTER_OUTPUT_DIR, AGENT_CALL_TIMEOUT
     DEFAULT_OUTPUT_DIR = str(OUTPUT_DIR)
     DEFAULT_COVER_LETTER_DIR = str(COVER_LETTER_OUTPUT_DIR)
 except ImportError:
     # Fallback for notebook usage (backend.config may not be available)
     DEFAULT_OUTPUT_DIR = "data/tailored_versions"
     DEFAULT_COVER_LETTER_DIR = "data/cover_letters"
+    AGENT_CALL_TIMEOUT = 120  # Default 2 minutes
+
+
+def _call_agent_with_timeout(agent, prompt, timeout=None):
+    """
+    Call an agent with a timeout to prevent infinite hangs.
+
+    This is a cross-platform solution that works on both Unix and Windows.
+    Uses threading to implement timeout functionality.
+    """
+    if timeout is None:
+        timeout = AGENT_CALL_TIMEOUT
+
+    result = [None]
+    exception = [None]
+
+    def target():
+        try:
+            result[0] = agent(prompt)
+        except Exception as e:
+            exception[0] = e
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout)
+
+    if thread.is_alive():
+        # Thread is still running - timeout occurred
+        raise TimeoutError(f"Agent call exceeded timeout of {timeout} seconds")
+
+    if exception[0]:
+        raise exception[0]
+
+    return result[0]
 
 
 def _extract_packages(tex_content: str) -> list:
@@ -148,7 +185,7 @@ Rules:
 """
 
     try:
-        result = metadata_agent(prompt)
+        result = _call_agent_with_timeout(metadata_agent, prompt, timeout=60)  # Shorter timeout for metadata
 
         # Handle different response formats
         if isinstance(result, str):
@@ -721,9 +758,10 @@ def generate_cover_letter(
     label = snapshot_label or ("Tailored Resume Snapshot" if resume_override_path else "Original Resume Snapshot")
     prompt = _build_cover_letter_prompt(job_text, resume_snapshot, metadata, contact, label)
 
-    # Call agent
+    # Call agent with timeout
     print("🤖 Generating cover letter draft...")
-    agent_result = letter_agent(prompt)
+    print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
+    agent_result = _call_agent_with_timeout(letter_agent, prompt)
 
     # Parse output
     parsed = _parse_json_from_agent(agent_result)
@@ -890,9 +928,10 @@ def tailor_resume_sections(
 
     prompt = _build_tailoring_prompt(job_text, sections_text, include_experience)
 
-    # 5. Call agent (generates modified sections only)
+    # 5. Call agent with timeout (generates modified sections only)
     print("🤖 Generating tailored sections...")
-    result = section_generator_agent(prompt)
+    print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
+    result = _call_agent_with_timeout(section_generator_agent, prompt)
 
     # 6. Parse sections from agent output
     print("📝 Parsing generated sections...")

@@ -2,8 +2,8 @@
  * Custom styles for Resume Tailor
  */
 
-/* Smooth transitions */
-* {
+/* Smooth transitions - scoped to specific elements to avoid rendering issues */
+button, input, select, textarea, a {
     transition-property: background-color, border-color, color, opacity;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -73,15 +73,20 @@ input:focus, select:focus, textarea:focus, button:focus {
 button, a.button {
     position: relative;
     overflow: hidden;
+    /* Fix rendering glitches on Windows */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 button:hover:not(:disabled), a.button:hover {
-    transform: translateY(-1px);
+    transform: translateY(-1px) translateZ(0);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 button:active:not(:disabled), a.button:active {
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 /* Disabled state */

@@ -71,3 +71,5 @@ ALLOWED_ORIGINS = [
 # Job processing settings
 JOB_STATUS_CHECK_INTERVAL = 2  # seconds
 MAX_JOB_AGE = 3600  # seconds (1 hour)
+JOB_TIMEOUT = 300  # seconds (5 minutes) - max time for a single job
+AGENT_CALL_TIMEOUT = 120  # seconds (2 minutes) - max time for a single AI agent call

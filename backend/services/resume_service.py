@@ -18,7 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.api.models import JobStatus, TailorResult
 from backend.config import (
     PROMPTS_DIR, ORIGINAL_RESUME_DIR, OUTPUT_DIR,
-    HAS_OPENAI, DEFAULT_MAIN_MODEL, DEFAULT_METADATA_MODEL
+    HAS_OPENAI, DEFAULT_MAIN_MODEL, DEFAULT_METADATA_MODEL,
+    JOB_TIMEOUT, AGENT_CALL_TIMEOUT
 )
 
 # Import Strands SDK
@@ -127,8 +128,8 @@ class ResumeService:
         """Get job status"""
         return self.jobs.get(job_id)
 
-    async def process_job(self, job_id: str):
-        """Process a tailoring job asynchronously"""
+    def process_job(self, job_id: str):
+        """Process a tailoring job (sync wrapper for background task)"""
         if job_id not in self.jobs:
             logger.error(f"Job {job_id} not found")
             return
@@ -156,13 +157,9 @@ class ResumeService:
             job["progress"] = 20
             job["message"] = "Extracting job metadata..."
 
-            # Run in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                self._run_tailor_resume,
-                job
-            )
+            # Run the tailoring process directly (it's already blocking)
+            # This runs in FastAPI's background thread pool
+            result = self._run_tailor_resume(job)
 
             # Job completed successfully
             job["status"] = JobStatus.COMPLETED
@@ -176,6 +173,14 @@ class ResumeService:
             logger.info(f"   TEX: {result['tex_path']}")
             if result['pdf_path']:
                 logger.info(f"   PDF: {result['pdf_path']}")
+
+        except TimeoutError:
+            logger.error(f"❌ Job {job_id} timed out after {JOB_TIMEOUT} seconds")
+            job["status"] = JobStatus.FAILED
+            job["progress"] = 0
+            job["message"] = f"Job timed out after {JOB_TIMEOUT} seconds. The AI agent took too long to respond."
+            job["error"] = f"Timeout after {JOB_TIMEOUT} seconds"
+            job["completed_at"] = datetime.now()
 
         except Exception as e:
             logger.error(f"❌ Job {job_id} failed: {e}", exc_info=True)
