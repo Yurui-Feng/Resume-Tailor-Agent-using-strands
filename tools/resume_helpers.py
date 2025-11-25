@@ -689,21 +689,25 @@ def render_cover_letter_latex(
     company = _escape_latex_text(metadata.get("company", ""))
     position = _escape_latex_text(metadata.get("position", ""))
 
-    contact_lines = [name]
+    contact_chunks = [part for part in [email, phone, website] if part]
+    contact_line_two = r" \textbullet\ ".join(contact_chunks)
+
+    header_lines = [rf"{{\Large \textbf{{{name}}}}}"]
     if location:
-        contact_lines.append(location)
+        header_lines.append(rf"{{\small {location}}}")
 
-    contact_line_two = " - ".join(
-        [part for part in [email, phone, website] if part]
-    )
+    if contact_line_two:
+        header_lines.append(rf"{{\small {contact_line_two}}}")
 
-    role_line = ""
-    if company or position:
-        at_connector = " at " if company and position else ""
-        role_line = f"Re: {position}{at_connector}{company}"
+    header_block = r"\\\n".join(header_lines)
+
+    subject_line = ""
+    if company and position:
+        subject_line = rf"\textbf{{Re: {position} at {company}}}"
+    elif position or company:
+        subject_line = rf"\textbf{{Re: {position or company}}}"
 
     today = datetime.now().strftime("%B %d, %Y")
-    header_block = "\n".join(line for line in [*contact_lines, contact_line_two] if line).strip()
 
     return rf"""% Auto-generated cover letter
 \documentclass[11pt]{{article}}
@@ -712,15 +716,19 @@ def render_cover_letter_latex(
 \usepackage[utf8]{{inputenc}}
 \usepackage{{lmodern}}
 \usepackage{{parskip}}
+\usepackage{{microtype}}
 \usepackage[hidelinks]{{hyperref}}
 
 \begin{{document}}
 \thispagestyle{{empty}}
+\raggedright
 
 {header_block}
 
-{today}
-{role_line if role_line else ""}
+\vspace{{0.75\baselineskip}}
+\textbf{{{today}}}{f"\\\\\n{subject_line}" if subject_line else ""}
+
+\vspace{{0.85\baselineskip}}
 
 {body_latex.strip()}
 

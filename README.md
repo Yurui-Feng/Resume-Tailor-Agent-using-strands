@@ -149,7 +149,7 @@ python -m uvicorn backend.main:app --reload
 1. Place your base resume in `data/original/` (for example `data/original/AI_engineer.tex`).
 2. Save the job posting text to `data/job_postings/posting_details.txt` or any other `.txt` file under `data/job_postings/`.
 3. Launch `jupyter notebook resume_tailor.ipynb` and run the setup cells (imports, logging, agents).
-4. Use the "Tailor resume by pasting job posting text (with optional posting_details.txt)" cell:
+4. Use the "Tailor resume by pasting job posting text (with optional posting_details .txt)" cell:
    - It loads `posting_details.txt` when present, otherwise shows a placeholder.
    - It calls `tailor_resume_sections(...)`, which:
      - extracts company/position for the filename,

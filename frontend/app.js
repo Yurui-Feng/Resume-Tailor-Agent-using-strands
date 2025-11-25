@@ -98,7 +98,7 @@ async function init() {
     // Setup event listeners
     setupEventListeners();
 
-    console.log('✅ Application initialized');
+    console.log('Application initialized');
 }
 
 
@@ -111,12 +111,12 @@ async function checkApiHealth() {
         const data = await response.json();
 
         if (data.status === 'healthy' && data.models_available) {
-            elements.apiStatus.innerHTML = '<i class="fas fa-circle text-green-500"></i> API Connected';
+            elements.apiStatus.textContent = 'API Connected';
         } else {
-            elements.apiStatus.innerHTML = '<i class="fas fa-circle text-yellow-500"></i> API Connected (Models Not Configured)';
+            elements.apiStatus.textContent = 'API Connected (Models Not Configured)';
         }
     } catch (error) {
-        elements.apiStatus.innerHTML = '<i class="fas fa-circle text-red-500"></i> API Disconnected';
+        elements.apiStatus.textContent = 'API Disconnected';
         console.error('API health check failed:', error);
     }
 }
@@ -170,16 +170,16 @@ async function loadResumeHistory() {
 
         elements.resumeHistoryList.innerHTML = results.map(result => `
             <div class="border border-gray-200 rounded-md p-4 hover:bg-gray-50 transition">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
+                <div class="flex flex-col gap-3">
+                    <div>
                         <h4 class="font-medium text-gray-900">${escapeHtml(result.company)} - ${escapeHtml(result.position)}</h4>
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
-                    <div class="flex space-x-2">
-                        ${result.has_tex ? `<a href="${API_BASE}/results/${result.id}/tex" class="text-blue-600 hover:text-blue-800" title="Download .tex"><i class="fas fa-file-alt"></i></a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/results/${result.id}/pdf" class="text-red-600 hover:text-red-800" title="Download .pdf"><i class="fas fa-file-pdf"></i></a>` : ''}
-                        <button onclick="deleteResult('${result.id}')" class="text-gray-400 hover:text-red-600" title="Delete">
-                            <i class="fas fa-trash"></i>
+                    <div class="flex flex-wrap gap-2 justify-end">
+                        ${result.has_tex ? `<a href="${API_BASE}/results/${result.id}/tex" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
+                        ${result.has_pdf ? `<a href="${API_BASE}/results/${result.id}/pdf" class="brutalist-button brutalist-button--compact brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
+                        <button type="button" onclick="deleteResult('${result.id}')" class="brutalist-button brutalist-button--compact brutalist-button--crimson">
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -214,17 +214,17 @@ async function loadCoverLetterHistory() {
 
         elements.coverHistoryList.innerHTML = results.map(result => `
             <div class="border border-gray-200 rounded-md p-4 hover:bg-gray-50 transition">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
+                <div class="flex flex-col gap-3">
+                    <div>
                         <h4 class="font-medium text-gray-900">${escapeHtml(result.company)} - ${escapeHtml(result.position)}</h4>
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
-                    <div class="flex space-x-2">
-                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="text-green-700 hover:text-green-900" title="Download .txt"><i class="fas fa-file-alt"></i></a>` : ''}
-                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="text-blue-600 hover:text-blue-800" title="Download .tex"><i class="fas fa-file-code"></i></a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="text-red-600 hover:text-red-800" title="Download .pdf"><i class="fas fa-file-pdf"></i></a>` : ''}
-                        <button onclick="deleteCoverLetter('${result.id}')" class="text-gray-400 hover:text-red-600" title="Delete">
-                            <i class="fas fa-trash"></i>
+                    <div class="flex flex-wrap gap-2 justify-end">
+                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEXT</a>` : ''}
+                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="brutalist-button brutalist-button--compact brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
+                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="brutalist-button brutalist-button--compact brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
+                        <button type="button" onclick="deleteCoverLetter('${result.id}')" class="brutalist-button brutalist-button--compact brutalist-button--crimson">
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -328,7 +328,7 @@ async function handleFormSubmit(e) {
     // Submit job
     try {
         elements.submitBtn.disabled = true;
-        elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        elements.submitBtn.textContent = 'Submitting...';
 
         const response = await fetch(`${API_BASE}/tailor`, {
             method: 'POST',
@@ -363,7 +363,7 @@ async function handleFormSubmit(e) {
         console.error('Submission error:', error);
         showError(error.message);
         elements.submitBtn.disabled = false;
-        elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
+        elements.submitBtn.textContent = 'Tailor Resume';
     }
 }
 
@@ -393,7 +393,7 @@ async function handleCoverLetterSubmit(e) {
 
     try {
         elements.coverSubmitBtn.disabled = true;
-        elements.coverSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        elements.coverSubmitBtn.textContent = 'Submitting...';
 
         const response = await fetch(`${API_BASE}/cover-letter`, {
             method: 'POST',
@@ -423,7 +423,7 @@ async function handleCoverLetterSubmit(e) {
         console.error('Cover letter submission error:', error);
         showCoverLetterError(error.message);
         elements.coverSubmitBtn.disabled = false;
-        elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+        elements.coverSubmitBtn.textContent = 'Create Cover Letter';
     }
 }
 
@@ -563,7 +563,7 @@ function showResults(result) {
 
     // Reset submit button state
     elements.submitBtn.disabled = false;
-    elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
+    elements.submitBtn.textContent = 'Tailor Resume';
 
     elements.resultCompany.textContent = result.company;
     elements.resultPosition.textContent = result.position;
@@ -575,7 +575,7 @@ function showResults(result) {
     elements.downloadPdfBtn.href = result.pdf_path ? `${API_BASE}/results/${resultId}/pdf` : '#';
     elements.downloadPdfBtn.style.display = result.pdf_path ? 'block' : 'none';
 
-    console.log('✅ Results displayed');
+    console.log('Results displayed');
 }
 
 
@@ -589,7 +589,7 @@ function showError(message) {
 
     // Reset submit button state
     elements.submitBtn.disabled = false;
-    elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
+    elements.submitBtn.textContent = 'Tailor Resume';
 }
 
 
@@ -603,7 +603,7 @@ function resetForm() {
     elements.errorSection.classList.add('hidden');
 
     elements.submitBtn.disabled = false;
-    elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
+    elements.submitBtn.textContent = 'Tailor Resume';
 
     currentJobId = null;
     stopStatusChecking();
@@ -633,7 +633,7 @@ function showCoverLetterResults(result) {
     elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
 
     elements.coverSubmitBtn.disabled = false;
-    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+    elements.coverSubmitBtn.textContent = 'Create Cover Letter';
 
     elements.coverResultCompany.textContent = result.company || '';
     elements.coverResultPosition.textContent = result.position || '';
@@ -648,7 +648,7 @@ function showCoverLetterResults(result) {
     elements.coverDownloadTxtBtn.href = result.text_path ? `${API_BASE}/cover-letter/results/${resultId}/text` : '#';
     elements.coverDownloadTxtBtn.style.display = result.text_path ? 'block' : 'none';
 
-    console.log('✅ Cover letter displayed');
+    console.log('Cover letter displayed');
 }
 
 
@@ -658,7 +658,7 @@ function showCoverLetterError(message) {
     elements.coverErrorMessage.textContent = message;
 
     elements.coverSubmitBtn.disabled = false;
-    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+    elements.coverSubmitBtn.textContent = 'Create Cover Letter';
     elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
 }
 
@@ -670,7 +670,7 @@ function resetCoverLetterForm() {
     elements.coverErrorSection.classList.add('hidden');
 
     elements.coverSubmitBtn.disabled = false;
-    elements.coverSubmitBtn.innerHTML = '<i class="fas fa-pen-nib"></i> Create Cover Letter';
+    elements.coverSubmitBtn.textContent = 'Create Cover Letter';
 
     updateCoverLetterProgress(0, 'Waiting to start...');
 
@@ -689,9 +689,9 @@ async function copyCoverLetterText() {
 
     try {
         await navigator.clipboard.writeText(text);
-        elements.copyCoverLetterBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        elements.copyCoverLetterBtn.textContent = 'Copied';
         setTimeout(() => {
-            elements.copyCoverLetterBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+            elements.copyCoverLetterBtn.textContent = 'Copy';
         }, 1500);
     } catch (error) {
         console.error('Copy failed:', error);
@@ -717,7 +717,7 @@ async function handleFileUpload(e) {
         formData.append('file', file);
 
         elements.uploadBtn.disabled = true;
-        elements.uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        elements.uploadBtn.textContent = 'Uploading...';
 
         const response = await fetch(`${API_BASE}/resumes/upload`, {
             method: 'POST',
@@ -745,7 +745,7 @@ async function handleFileUpload(e) {
         alert(`Upload failed: ${error.message}`);
     } finally {
         elements.uploadBtn.disabled = false;
-        elements.uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload New';
+        elements.uploadBtn.textContent = 'Upload New';
         elements.fileInput.value = '';
     }
 }
