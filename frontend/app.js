@@ -561,6 +561,10 @@ function showResults(result) {
     elements.processingSection.classList.add('hidden');
     elements.resultsSection.classList.remove('hidden');
 
+    // Reset submit button state
+    elements.submitBtn.disabled = false;
+    elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
+
     elements.resultCompany.textContent = result.company;
     elements.resultPosition.textContent = result.position;
 
@@ -582,6 +586,10 @@ function showError(message) {
     elements.processingSection.classList.add('hidden');
     elements.errorSection.classList.remove('hidden');
     elements.errorMessage.textContent = message;
+
+    // Reset submit button state
+    elements.submitBtn.disabled = false;
+    elements.submitBtn.innerHTML = '<i class="fas fa-magic"></i> Tailor Resume';
 }
 
 
