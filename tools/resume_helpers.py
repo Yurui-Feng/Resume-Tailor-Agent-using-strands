@@ -215,7 +215,7 @@ Rules:
         }
 
     except Exception as e:
-        print(f"⚠️  Metadata extraction failed: {e}")
+        print(f"[WARN] Metadata extraction failed: {e}")
         print(f"   Using fallback values")
         return {
             "company": "Unknown_Company",
@@ -277,12 +277,12 @@ def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
         cleanup: Remove intermediate files (.aux, .log, .out) after compilation
 
     Returns:
-        Path to generated PDF file, or error message starting with "❌"
+        Path to generated PDF file, or error message starting with "ERROR:"
     """
     tex_path = Path(tex_file_path).resolve()
 
     if not tex_path.exists():
-        return f"❌ Error: TeX file not found: {tex_file_path}"
+        return f"ERROR: TeX file not found: {tex_file_path}"
 
     output_dir = tex_path.parent
 
@@ -295,9 +295,9 @@ def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
             timeout=5
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return "❌ Error: pdflatex not found. Please install LaTeX (MiKTeX, TeX Live, or MacTeX)."
+        return "ERROR: pdflatex not found. Please install LaTeX (MiKTeX, TeX Live, or MacTeX)."
     except subprocess.TimeoutExpired:
-        return "❌ Error: pdflatex version check timeout"
+        return "ERROR: pdflatex version check timeout"
 
     # Compile LaTeX to PDF
     try:
@@ -311,6 +311,8 @@ def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
             cwd=output_dir,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=30
         )
 
@@ -328,12 +330,12 @@ def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
         else:
             # PDF not generated, return error details
             error_log = result.stderr if result.stderr else result.stdout
-            return f"❌ PDF generation failed:\n{error_log[:500]}"
+            return f"ERROR: PDF generation failed:\n{error_log[:500]}"
 
     except subprocess.TimeoutExpired:
-        return "❌ PDF compilation timeout (>30s). Check LaTeX for errors."
+        return "ERROR: PDF compilation timeout (>30s). Check LaTeX for errors."
     except Exception as e:
-        return f"❌ PDF compilation error: {e}"
+        return f"ERROR: PDF compilation error: {e}"
 
 
 def parse_sections(result) -> Dict[str, str]:
@@ -599,7 +601,7 @@ JOB POSTING:
 {job_text}
 <<<JOB_POSTING_END>>>
 
-{snapshot_label} (facts only; LaTeX macros may appear—treat them as plain text):
+{snapshot_label} (facts only; LaTeX macros may appear - treat them as plain text):
 <<<RESUME_START>>>
 {resume_snapshot}
 <<<RESUME_END>>>
@@ -691,7 +693,7 @@ def render_cover_letter_latex(
     if location:
         contact_lines.append(location)
 
-    contact_line_two = " • ".join(
+    contact_line_two = " - ".join(
         [part for part in [email, phone, website] if part]
     )
 
@@ -746,7 +748,7 @@ def generate_cover_letter(
 
     resume_text = resume_path.read_text(encoding="utf-8")
 
-    print("🔍 Extracting job metadata for cover letter...")
+    print("[INFO] Extracting job metadata for cover letter...")
     metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
     print(f"   Company: {metadata['company']}")
     print(f"   Position: {metadata['position']}")
@@ -759,7 +761,7 @@ def generate_cover_letter(
     prompt = _build_cover_letter_prompt(job_text, resume_snapshot, metadata, contact, label)
 
     # Call agent with timeout
-    print("🤖 Generating cover letter draft...")
+    print("[INFO] Generating cover letter draft...")
     print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
     agent_result = _call_agent_with_timeout(letter_agent, prompt)
 
@@ -788,7 +790,7 @@ def generate_cover_letter(
     # Write LaTeX file
     latex_document = render_cover_letter_latex(latex_body, contact, metadata)
     tex_path.write_text(latex_document, encoding="utf-8")
-    print(f"   ✓ LaTeX saved: {tex_path}")
+    print(f"[OK] LaTeX saved: {tex_path}")
 
     # Write plain text snapshot
     text_path = tex_path.with_suffix(".txt")
@@ -796,17 +798,17 @@ def generate_cover_letter(
         text_path.write_text(plain_text, encoding="utf-8")
     else:
         text_path.write_text(latex_body, encoding="utf-8")
-    print(f"   ✓ Text saved: {text_path}")
+    print(f"[OK] Text saved: {text_path}")
 
     pdf_path = None
     if render_pdf:
-        print("📄 Compiling cover letter PDF...")
+        print("[INFO] Compiling cover letter PDF...")
         pdf_result = compile_pdf(str(tex_path), cleanup=True)
-        if pdf_result.startswith("❌"):
+        if pdf_result.startswith("ERROR"):
             print(pdf_result)
         else:
             pdf_path = pdf_result
-            print(f"   ✓ PDF created: {Path(pdf_path).name}")
+            print(f"[OK] PDF created: {Path(pdf_path).name}")
 
     return {
         "tex_path": str(tex_path),
@@ -815,7 +817,7 @@ def generate_cover_letter(
         "plain_text": plain_text,
         "company": metadata["company"],
         "position": metadata["position"],
-        "validation": "✅ Cover letter generated",
+        "validation": "Cover letter generated",
     }
 
 
@@ -851,7 +853,7 @@ def tailor_resume_sections(
     from tools.section_updater import extract_section, merge_sections
 
     # 1. Extract metadata using lightweight agent
-    print("🔍 Extracting job metadata...")
+    print("[INFO] Extracting job metadata...")
     metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
     print(f"   Company: {metadata['company']}")
     print(f"   Position: {metadata['position']}")
@@ -864,7 +866,7 @@ def tailor_resume_sections(
             metadata["position"],
             extension=".tex"
         )
-        print(f"📝 Auto-generated filename: {Path(output_path).name}")
+        print(f"[INFO] Auto-generated filename: {Path(output_path).name}")
         print()
 
     # 3. Save job text to temporary file for section extraction
@@ -872,16 +874,16 @@ def tailor_resume_sections(
         f.write(job_text)
         job_posting_path = f.name
 
-    print("📋 Starting resume tailoring...")
+    print("[INFO] Starting resume tailoring...")
     print(f"   Original: {original_resume_path}")
     print(f"   Output: {output_path}")
     print()
 
     # 1. Extract sections from original resume
-    print("📤 Extracting sections from original resume...")
+    print("[INFO] Extracting sections from original resume...")
     resume_path = Path(original_resume_path)
     if not resume_path.exists():
-        return f"❌ Error: Resume not found at {original_resume_path}"
+        return f"ERROR: Resume not found at {original_resume_path}"
 
     resume_text = resume_path.read_text(encoding='utf-8')
 
@@ -898,26 +900,26 @@ def tailor_resume_sections(
         section_content = extract_section(resume_text, section_name)
         if section_content and not section_content.startswith("Section '"):
             extracted[section_name] = section_content
-            print(f"   ✓ Extracted: {section_name}")
+            print(f"[OK] Extracted: {section_name}")
         else:
-            print(f"   ⚠️  Could not extract: {section_name}")
+            print(f"[WARN] Could not extract: {section_name}")
     if not extracted:
-        print("   ⚠️  No sections extracted; falling back to full resume text for prompt context.")
+        print("[WARN] No sections extracted; falling back to full resume text for prompt context.")
     print()
 
     # 2. Read job posting
     job_path = Path(job_posting_path)
     if not job_path.exists():
-        return f"❌ Error: Job posting not found at {job_posting_path}"
+        return f"ERROR: Job posting not found at {job_posting_path}"
 
     job_text = job_path.read_text(encoding='utf-8')
 
     # 3. Copy original resume before modification
-    print("📁 Copying original resume to output directory...")
+    print("[INFO] Copying original resume to output directory...")
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(original_resume_path, output_path)
-    print(f"   ✓ Copied to: {output_path}")
+    print(f"[OK] Copied to: {output_path}")
     print()
 
     # 4. Build prompt using only extracted sections
@@ -929,21 +931,21 @@ def tailor_resume_sections(
     prompt = _build_tailoring_prompt(job_text, sections_text, include_experience)
 
     # 5. Call agent with timeout (generates modified sections only)
-    print("🤖 Generating tailored sections...")
+    print("[INFO] Generating tailored sections...")
     print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
     result = _call_agent_with_timeout(section_generator_agent, prompt)
 
     # 6. Parse sections from agent output
-    print("📝 Parsing generated sections...")
+    print("[INFO] Parsing generated sections...")
     updated_sections = parse_sections(result)
 
     print(f"   Found {len(updated_sections)} sections to update:")
     for section_name in updated_sections.keys():
-        print(f"     • {section_name}")
+        print(f"     - {section_name}")
     print()
 
     # 7. Replace sections in copied resume
-    print("🔧 Replacing sections in copied resume...")
+    print("[INFO] Replacing sections in copied resume...")
     merge_result = merge_sections(
         original_file=output_path,
         updated_sections=updated_sections,
@@ -959,15 +961,15 @@ def tailor_resume_sections(
     pdf_path = None
     if render_pdf:
         print()
-        print("📄 Compiling PDF...")
+        print("[INFO] Compiling PDF...")
         pdf_result = compile_pdf(output_path, cleanup=True)
 
-        if pdf_result.startswith("❌"):
+        if pdf_result.startswith("ERROR"):
             print(pdf_result)
             pdf_path = None
         else:
             pdf_path = pdf_result
-            print(f"   ✓ PDF created: {Path(pdf_path).name}")
+            print(f"[OK] PDF created: {Path(pdf_path).name}")
 
     # 9. Cleanup temporary job posting file
     try:
