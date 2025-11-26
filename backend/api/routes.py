@@ -70,6 +70,8 @@ async def tailor_resume(request: TailorRequest, background_tasks: BackgroundTask
     - **original_resume_id**: ID of original resume (e.g., "AI_engineer")
     - **include_experience**: Whether to update Professional Experience section
     - **render_pdf**: Whether to compile PDF from LaTeX
+    - **company_name**: Optional user-provided company name (overrides AI extraction)
+    - **desired_title**: Optional user-provided resume title (overrides AI extraction)
 
     Returns job_id for status tracking.
     """
@@ -86,7 +88,9 @@ async def tailor_resume(request: TailorRequest, background_tasks: BackgroundTask
         job_posting=request.job_posting,
         original_resume_id=request.original_resume_id,
         include_experience=request.include_experience,
-        render_pdf=request.render_pdf
+        render_pdf=request.render_pdf,
+        company_name=request.company_name,
+        desired_title=request.desired_title
     )
 
     # Start processing in background

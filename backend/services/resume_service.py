@@ -102,7 +102,9 @@ class ResumeService:
             raise
 
     def create_job(self, job_posting: str, original_resume_id: str,
-                   include_experience: bool, render_pdf: bool) -> str:
+                   include_experience: bool, render_pdf: bool,
+                   company_name: Optional[str] = None,
+                   desired_title: Optional[str] = None) -> str:
         """Create a new tailoring job"""
         job_id = str(uuid.uuid4())
 
@@ -117,11 +119,15 @@ class ResumeService:
             "original_resume_id": original_resume_id,
             "include_experience": include_experience,
             "render_pdf": render_pdf,
+            "company_name": company_name,
+            "desired_title": desired_title,
             "result": None,
             "error": None
         }
 
         logger.info(f"Created job {job_id} for resume {original_resume_id}")
+        if company_name or desired_title:
+            logger.info(f"  User-provided metadata: company={company_name}, title={desired_title}")
         return job_id
 
     def get_job_status(self, job_id: str) -> Optional[dict]:
@@ -206,7 +212,9 @@ class ResumeService:
             original_resume_path=str(original_resume_path),
             output_path=None,  # Auto-generate filename
             include_experience=job["include_experience"],
-            render_pdf=job["render_pdf"]
+            render_pdf=job["render_pdf"],
+            user_company=job.get("company_name"),
+            user_title=job.get("desired_title")
         )
 
         job["progress"] = 90

@@ -6,6 +6,7 @@ Utilities to update specific sections of a LaTeX resume while preserving the res
 """
 
 from pathlib import Path
+from typing import Optional
 import re
 
 
@@ -111,7 +112,8 @@ def update_subtitle(latex_content: str, new_subtitle: str) -> str:
 def merge_sections(
     original_file: str,
     updated_sections: dict,
-    output_file: str
+    output_file: str,
+    user_subtitle: Optional[str] = None
 ) -> str:
     """
     Merge updated sections into original resume and save.
@@ -120,6 +122,7 @@ def merge_sections(
         original_file: Path to original resume .tex file
         updated_sections: Dict of section_name: new_latex_content
         output_file: Path to save merged resume
+        user_subtitle: User-provided subtitle (takes priority over updated_sections)
 
     Returns:
         Success message or error
@@ -129,13 +132,14 @@ def merge_sections(
         with open(original_file, 'r', encoding='utf-8') as f:
             latex = f.read()
 
-        # Update subtitle if provided
-        if 'subtitle' in updated_sections:
-            latex = update_subtitle(latex, updated_sections['subtitle'])
+        # Update subtitle (priority: user_subtitle > updated_sections['subtitle'])
+        subtitle_to_use = user_subtitle or updated_sections.get('subtitle')
+        if subtitle_to_use:
+            latex = update_subtitle(latex, subtitle_to_use)
             if latex.startswith("Error"):
                 return latex
 
-        # Replace each section
+        # Replace each section (skip 'subtitle' since handled above)
         for section_name, new_content in updated_sections.items():
             if section_name == 'subtitle':
                 continue  # Already handled

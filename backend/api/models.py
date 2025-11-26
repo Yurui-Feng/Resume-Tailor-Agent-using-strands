@@ -36,6 +36,18 @@ class TailorRequest(BaseModel):
         default=True,
         description="Whether to compile PDF from LaTeX"
     )
+    company_name: Optional[str] = Field(
+        default=None,
+        description="User-provided company name (overrides LLM extraction if provided)",
+        max_length=100,
+        examples=["Google", "Amazon Web Services"]
+    )
+    desired_title: Optional[str] = Field(
+        default=None,
+        description="User-provided resume subtitle/title (overrides LLM extraction if provided)",
+        max_length=100,
+        examples=["Senior ML Engineer", "Cloud & AI Software Engineer"]
+    )
 
 
 class CoverLetterRequest(BaseModel):

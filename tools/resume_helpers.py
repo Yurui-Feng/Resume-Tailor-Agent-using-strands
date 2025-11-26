@@ -523,6 +523,33 @@ def _escape_latex_text(text: str) -> str:
     return "".join(replacements.get(ch, ch) for ch in text)
 
 
+def _sanitize_user_metadata(value: Optional[str]) -> Optional[str]:
+    """
+    Sanitize user-provided metadata to prevent issues.
+
+    Args:
+        value: User input (company name or title)
+
+    Returns:
+        Sanitized value or None if empty/invalid
+    """
+    if not value or not value.strip():
+        return None
+
+    # Remove leading/trailing whitespace
+    cleaned = value.strip()
+
+    # Limit to reasonable length (defense in depth)
+    if len(cleaned) > 100:
+        cleaned = cleaned[:100]
+
+    # Remove control characters and excessive whitespace
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    cleaned = re.sub(r'[\x00-\x1F\x7F]', '', cleaned)
+
+    return cleaned if cleaned else None
+
+
 def extract_contact_info(resume_text: str) -> Dict[str, str]:
     """Extract basic contact fields from the resume preamble."""
     def _extract_def(name: str) -> Optional[str]:
@@ -624,6 +651,7 @@ def _build_tailoring_prompt(
     job_text: str,
     sections_text: str,
     include_experience: bool,
+    user_title: Optional[str] = None
 ) -> str:
     """Compose the prompt for section-only resume tailoring."""
     experience_line = (
@@ -632,6 +660,17 @@ def _build_tailoring_prompt(
         else "- Professional Experience is optional; return SKIP if no changes are needed."
     )
     experience_scope = " and Professional Experience" if include_experience else ""
+
+    # Conditional subtitle instruction
+    if user_title:
+        subtitle_instruction = (
+            f"- DO NOT generate a subtitle. The user has provided: '{user_title}'. "
+            "Skip the SUBTITLE section entirely in your response."
+        )
+        sections_to_update = f"Professional Summary, Technical Proficiencies{experience_scope}"
+    else:
+        subtitle_instruction = "- Generate a subtitle matching the job title exactly (with LaTeX escaping)."
+        sections_to_update = f"subtitle, Professional Summary, Technical Proficiencies{experience_scope}"
 
     return f"""
 JOB POSTING:
@@ -645,7 +684,8 @@ CURRENT SECTIONS TO UPDATE:
 <<<SECTIONS_END>>>
 
 TASK:
-- Update the subtitle, Professional Summary, Technical Proficiencies{experience_scope} based on the job posting.
+- Update the {sections_to_update} based on the job posting.
+{subtitle_instruction}
 {experience_line}
 - Use only the provided resume content; do not invent new employers, titles, or technologies.
 - Keep LaTeX commands intact and follow the Section-Only output contract from your system prompt (SUBTITLE, PROFESSIONAL SUMMARY, TECHNICAL PROFICIENCIES, OPTIONAL EXPERIENCE).
@@ -836,7 +876,9 @@ def tailor_resume_sections(
     original_resume_path: str,
     output_path: Optional[str] = None,
     include_experience: bool = False,
-    render_pdf: bool = True
+    render_pdf: bool = True,
+    user_company: Optional[str] = None,
+    user_title: Optional[str] = None
 ) -> Dict[str, Optional[str]]:
     """
     Complete workflow: extract metadata, generate sections, merge, and optionally render PDF.
@@ -849,20 +891,48 @@ def tailor_resume_sections(
         output_path: Path to save tailored .tex file (auto-generated if None)
         include_experience: Whether to update Experience section
         render_pdf: Compile LaTeX to PDF after successful merge
+        user_company: User-provided company name (overrides LLM extraction)
+        user_title: User-provided resume title (overrides LLM extraction)
 
     Returns:
         Dictionary with:
             - tex_path: Path to generated .tex file
             - pdf_path: Path to generated .pdf file (if render_pdf=True)
-            - company: Extracted company name
-            - position: Extracted job position
+            - company: Extracted/user-provided company name
+            - position: Extracted/user-provided job position
             - validation: LaTeX validation result message
     """
     from tools.section_updater import extract_section, merge_sections
 
-    # 1. Extract metadata using lightweight agent
-    print("[INFO] Extracting job metadata...")
-    metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
+    # Sanitize user inputs
+    user_company = _sanitize_user_metadata(user_company)
+    user_title = _sanitize_user_metadata(user_title)
+
+    # 1. Extract metadata (conditionally)
+    metadata = {}
+
+    if user_company and user_title:
+        # Use user-provided values entirely
+        print("[INFO] Using user-provided metadata (skipping LLM extraction)...")
+        metadata = {
+            "company": user_company,
+            "position": user_title
+        }
+    elif user_company or user_title:
+        # Partial override: extract missing values
+        print("[INFO] Extracting missing job metadata from posting...")
+        extracted = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
+        metadata = {
+            "company": user_company or extracted["company"],
+            "position": user_title or extracted["position"]
+        }
+        print(f"   Using: company={metadata['company']} (user={bool(user_company)}), "
+              f"position={metadata['position']} (user={bool(user_title)})")
+    else:
+        # No user input: extract both
+        print("[INFO] Extracting job metadata from posting...")
+        metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
+
     print(f"   Company: {metadata['company']}")
     print(f"   Position: {metadata['position']}")
     print()
@@ -936,7 +1006,7 @@ def tailor_resume_sections(
     else:
         sections_text = resume_text
 
-    prompt = _build_tailoring_prompt(job_text, sections_text, include_experience)
+    prompt = _build_tailoring_prompt(job_text, sections_text, include_experience, user_title)
 
     # 5. Call agent with timeout (generates modified sections only)
     print("[INFO] Generating tailored sections...")
@@ -957,7 +1027,8 @@ def tailor_resume_sections(
     merge_result = merge_sections(
         original_file=output_path,
         updated_sections=updated_sections,
-        output_file=output_path
+        output_file=output_path,
+        user_subtitle=user_title
     )
 
     _post_merge_cleanup(output_path)

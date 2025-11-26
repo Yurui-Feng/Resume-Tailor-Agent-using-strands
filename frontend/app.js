@@ -19,6 +19,8 @@ const elements = {
     tailorForm: document.getElementById('tailorForm'),
     resumeSelect: document.getElementById('resumeSelect'),
     jobPosting: document.getElementById('jobPosting'),
+    companyName: document.getElementById('companyName'),
+    desiredTitle: document.getElementById('desiredTitle'),
     includeExperience: document.getElementById('includeExperience'),
     renderPdf: document.getElementById('renderPdf'),
     submitBtn: document.getElementById('submitBtn'),
@@ -341,6 +343,8 @@ async function handleFormSubmit(e) {
     // Get form data
     const resumeId = elements.resumeSelect.value;
     const jobPosting = elements.jobPosting.value.trim();
+    const companyName = elements.companyName.value.trim();
+    const desiredTitle = elements.desiredTitle.value.trim();
     const includeExperience = elements.includeExperience.checked;
     const renderPdf = elements.renderPdf.checked;
 
@@ -365,17 +369,27 @@ async function handleFormSubmit(e) {
         elements.submitBtn.disabled = true;
         elements.submitBtn.textContent = 'Submitting...';
 
+        const requestBody = {
+            job_posting: jobPosting,
+            original_resume_id: resumeId,
+            include_experience: includeExperience,
+            render_pdf: renderPdf
+        };
+
+        // Add optional fields only if provided
+        if (companyName) {
+            requestBody.company_name = companyName;
+        }
+        if (desiredTitle) {
+            requestBody.desired_title = desiredTitle;
+        }
+
         const response = await fetch(`${API_BASE}/tailor`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                job_posting: jobPosting,
-                original_resume_id: resumeId,
-                include_experience: includeExperience,
-                render_pdf: renderPdf
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -659,6 +673,10 @@ function resetForm() {
     elements.processingSection.classList.add('hidden');
     elements.resultsSection.classList.add('hidden');
     elements.errorSection.classList.add('hidden');
+
+    // Clear metadata fields
+    elements.companyName.value = '';
+    elements.desiredTitle.value = '';
 
     elements.submitBtn.disabled = false;
     elements.submitBtn.textContent = 'Tailor Resume';
