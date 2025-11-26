@@ -173,7 +173,7 @@ async function loadResumeHistory() {
     if (results.length === 0) {
         elements.resumeHistoryList.innerHTML = '<p class="text-gray-500 text-sm">No tailored resumes yet</p>';
         latestTailoredId = null;
-        return;
+            return;
     }
 
         elements.resumeHistoryList.innerHTML = results.map(result => `
@@ -183,13 +183,7 @@ async function loadResumeHistory() {
                         <h4 class="font-medium text-gray-900">${escapeHtml(result.company)} - ${escapeHtml(result.position)}</h4>
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 justify-end">
-                        ${result.has_tex ? `<a href="${API_BASE}/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
-                        <button type="button" onclick="deleteResult('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">
-                            Delete
-                        </button>
-                    </div>
+                    ${renderResumeActions(result)}
                 </div>
             </div>
         `).join('');
@@ -227,14 +221,7 @@ async function loadCoverLetterHistory() {
                         <h4 class="font-medium text-gray-900">${escapeHtml(result.company)} - ${escapeHtml(result.position)}</h4>
                         <p class="text-sm text-gray-500">${formatDate(result.created_at)}</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 justify-end">
-                        ${result.has_tex ? `<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>` : ''}
-                        ${result.has_txt ? `<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="brutalist-button brutalist-button--mini brutalist-button--butter" target="_blank" rel="noopener noreferrer">TEXT</a>` : ''}
-                        ${result.has_pdf ? `<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>` : ''}
-                        <button type="button" onclick="deleteCoverLetter('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">
-                            Delete
-                        </button>
-                    </div>
+                    ${renderCoverLetterActions(result)}
                 </div>
             </div>
         `).join('');
@@ -244,6 +231,41 @@ async function loadCoverLetterHistory() {
         console.error('Failed to load cover letter history:', error);
         elements.coverHistoryList.innerHTML = '<p class="text-red-500 text-sm">Error loading cover letters</p>';
     }
+}
+
+/**
+ * Render action buttons for resume history cards
+ */
+function renderResumeActions(result) {
+    const buttons = [];
+    if (result.has_tex) {
+        buttons.push(`<a href="${API_BASE}/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>`);
+    }
+    if (result.has_pdf) {
+        buttons.push(`<a href="${API_BASE}/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>`);
+    }
+    buttons.push(`<button type="button" onclick="deleteResult('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">Delete</button>`);
+
+    return `<div class="flex flex-wrap gap-2 justify-end">${buttons.join('')}</div>`;
+}
+
+/**
+ * Render action buttons for cover letter history cards
+ */
+function renderCoverLetterActions(result) {
+    const buttons = [];
+    if (result.has_tex) {
+        buttons.push(`<a href="${API_BASE}/cover-letter/results/${result.id}/tex" class="brutalist-button brutalist-button--mini brutalist-button--ghost" target="_blank" rel="noopener noreferrer">TEX</a>`);
+    }
+    if (result.has_txt) {
+        buttons.push(`<a href="${API_BASE}/cover-letter/results/${result.id}/text" class="brutalist-button brutalist-button--mini brutalist-button--butter" target="_blank" rel="noopener noreferrer">TEXT</a>`);
+    }
+    if (result.has_pdf) {
+        buttons.push(`<a href="${API_BASE}/cover-letter/results/${result.id}/pdf" class="brutalist-button brutalist-button--mini brutalist-button--emerald" target="_blank" rel="noopener noreferrer">PDF</a>`);
+    }
+    buttons.push(`<button type="button" onclick="deleteCoverLetter('${result.id}')" class="brutalist-button brutalist-button--mini brutalist-button--crimson">Delete</button>`);
+
+    return `<div class="flex flex-wrap gap-2 justify-end">${buttons.join('')}</div>`;
 }
 
 
