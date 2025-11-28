@@ -1,0 +1,1099 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   BRUTALIST CSS LAYER
+   A raw, honest, and unpolished design system
+   ============================================================================= */
+
+@layer base {
+  :root {
+    /* ===========================================
+       BASELINE GRID - 8px System
+       =========================================== */
+    --grid-unit: 8px;
+    --space-1: 8px;
+    --space-2: 16px;
+    --space-3: 24px;
+    --space-4: 32px;
+    --space-5: 40px;
+    --space-6: 48px;
+    --space-8: 64px;
+    --space-10: 80px;
+    --space-12: 96px;
+
+    /* ===========================================
+       TYPOGRAPHY - Tracking
+       =========================================== */
+    --tracking-tighter: -0.03em;
+    --tracking-tight: -0.01em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.025em;
+    --tracking-wider: 0.05em;
+
+    /* ===========================================
+       TYPOGRAPHY - Line Heights (grid-aligned)
+       =========================================== */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.75;
+
+    /* ===========================================
+       TYPOGRAPHY - Font Sizes (grid-aligned)
+       =========================================== */
+    --text-xs: 10px;
+    --text-sm: 12px;
+    --text-base: 14px;
+    --text-lg: 16px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+    --text-3xl: 32px;
+    --text-4xl: 40px;
+    --text-5xl: 48px;
+
+    /* ===========================================
+       LIGHT THEME TOKENS - LUMINOUS BLUEPRINT
+       =========================================== */
+
+    --primary: #16181d;
+    --primary-foreground: #f5f6f8;
+    --secondary: #f6f6f8;
+    --secondary-foreground: #0f1115;
+    --info: #e7e8ec;
+    --info-foreground: #0f1115;
+    --action: #2f3543;
+    --action-foreground: #f5f6f8;
+    --destructive: #b23a3a;
+    --destructive-foreground: #ffffff;
+    --tertiary: #a4a8b0;
+    --tertiary-foreground: #16181d;
+
+    --background: var(--secondary);
+    --foreground: var(--primary);
+    --card: #ffffff;
+    --card-foreground: var(--primary);
+    --popover: #ffffff;
+    --popover-foreground: var(--primary);
+    --muted: #e5e6ea;
+    --muted-foreground: #52555e;
+    --accent: #2f3543;
+    --accent-foreground: #f5f6f8;
+    --border: #d1d2d6;
+    --input: #d1d2d6;
+    --ring: var(--action);
+    --radius: 16px;
+
+    --surface-1: #ffffff;
+    --surface-2: #f1f2f5;
+    --surface-3: #e7e8ec;
+    --shadow-soft: 0 18px 48px -28px rgba(12, 13, 16, 0.4);
+    --shadow-strong: 0 28px 80px -48px rgba(12, 13, 16, 0.55);
+    --stroke-strong: rgba(22, 24, 29, 0.16);
+    --stroke-soft: rgba(22, 24, 29, 0.08);
+
+    /* Chart colors */
+    --chart-1: #2f3543;
+    --chart-2: #16181d;
+    --chart-3: #6b7280;
+    --chart-4: #a4a8b0;
+    --chart-5: #d1d2d6;
+  }
+
+  .dark {
+    /* ===========================================
+       BRUTALIST COLOR TOKENS - DARK THEME
+       Swapped primary/secondary from light mode
+       =========================================== */
+
+    --primary: #e9eaee;
+    --primary-foreground: #0a0b0f;
+    --secondary: #0c0e13;
+    --secondary-foreground: #e9eaee;
+    --info: #10131a;
+    --info-foreground: #e9eaee;
+    --action: #4b5263;
+    --action-foreground: #f4f5f7;
+    --destructive: #d25b5b;
+    --destructive-foreground: #0c0d11;
+    --tertiary: #7e838f;
+    --tertiary-foreground: #e9eaee;
+
+    --background: var(--secondary);
+    --foreground: var(--primary);
+    --card: #0b1220;
+    --card-foreground: var(--primary);
+    --popover: #0a0f1b;
+    --popover-foreground: var(--primary);
+    --muted: #10131a;
+    --muted-foreground: #b5b9c3;
+    --accent: #4b5263;
+    --accent-foreground: #f4f5f7;
+    --border: #222733;
+    --input: var(--border);
+    --ring: var(--action);
+    --radius: 16px;
+
+    --surface-1: #0c0e13;
+    --surface-2: #11141b;
+    --surface-3: #161a23;
+    --shadow-soft: 0 20px 50px -32px rgba(0, 0, 0, 0.7);
+    --shadow-strong: 0 30px 80px -36px rgba(75, 82, 99, 0.55);
+    --stroke-strong: rgba(233, 234, 238, 0.18);
+    --stroke-soft: rgba(233, 234, 238, 0.08);
+
+    /* Chart colors - dark mode */
+    --chart-1: #4b5263;
+    --chart-2: #e9eaee;
+    --chart-3: #7e838f;
+    --chart-4: #a4a8b0;
+    --chart-5: #d1d2d6;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  /* Text selection color - uses info color */
+  ::selection {
+    background-color: rgba(47, 53, 67, 0.18);
+    color: var(--foreground);
+  }
+
+  ::-moz-selection {
+    background-color: rgba(47, 53, 67, 0.18);
+    color: var(--foreground);
+  }
+
+  body {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(circle at 20% 18%, rgba(22, 24, 29, 0.06), transparent 34%),
+      radial-gradient(circle at 80% 8%, rgba(22, 24, 29, 0.05), transparent 36%),
+      linear-gradient(180deg, var(--background) 0%, var(--surface-2) 50%, var(--surface-3) 100%);
+    color: var(--foreground);
+    font-family: "DM Sans", "Space Grotesk", system-ui, -apple-system, sans-serif;
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===========================================
+     GLOBAL TYPOGRAPHY - Headings
+     =========================================== */
+  h1 {
+    font-family: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: var(--text-4xl);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  h3 {
+    font-family: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    line-height: var(--leading-snug);
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-family: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: var(--text-xl);
+    font-weight: 600;
+    line-height: var(--leading-snug);
+    letter-spacing: -0.005em;
+  }
+
+  /* ===========================================
+     GLOBAL TYPOGRAPHY - Body & Labels
+     =========================================== */
+  p {
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-normal);
+  }
+
+  small {
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: var(--leading-normal);
+    letter-spacing: 0.06em;
+  }
+
+  /* Code/Mono text */
+  code,
+  pre,
+  kbd {
+    font-family: "JetBrains Mono", "Space Grotesk", monospace;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-normal);
+  }
+
+}
+
+/* =============================================================================
+   BRUTALIST COMPONENT STYLES
+   ============================================================================= */
+
+@layer components {
+
+  /* Luminous Button Styles */
+  .brutalist-btn {
+    @apply relative inline-flex items-center justify-center;
+    @apply font-sans font-semibold uppercase;
+    padding: calc(var(--space-2) - 2px) var(--space-4);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: 0.08em;
+    border-radius: calc(var(--radius) - 6px);
+    border: 1.5px solid var(--stroke-strong);
+    background: linear-gradient(135deg, var(--surface-1) 0%, var(--surface-2) 100%);
+    color: var(--foreground);
+    box-shadow: var(--shadow-soft);
+    transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+  }
+
+  .brutalist-btn:hover {
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    border-color: rgba(47, 53, 67, 0.45);
+    box-shadow: var(--shadow-strong);
+    transform: translateY(-1px);
+  }
+
+  .brutalist-btn:active {
+    box-shadow: 0 12px 32px -22px rgba(12, 18, 32, 0.5);
+    transform: translateY(0);
+  }
+
+  .brutalist-btn-primary {
+    background: linear-gradient(135deg, #2f3543 0%, #1f232d 100%);
+    color: var(--action-foreground);
+    border-color: rgba(47, 53, 67, 0.6);
+    box-shadow: 0 20px 52px -28px rgba(12, 13, 16, 0.65);
+  }
+
+  .brutalist-btn-primary:hover {
+    border-color: rgba(47, 53, 67, 0.75);
+  }
+
+  .brutalist-btn-destructive {
+    background: linear-gradient(135deg, #b23a3a 0%, #c74848 100%);
+    color: var(--destructive-foreground);
+    border-color: rgba(178, 58, 58, 0.6);
+    box-shadow: 0 20px 50px -28px rgba(178, 58, 58, 0.55);
+  }
+
+  /* Inputs */
+  .brutalist-input {
+    @apply w-full font-sans;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-normal);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--stroke-soft);
+    background: var(--surface-1);
+    color: var(--foreground);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      0 12px 28px -24px rgba(12, 18, 32, 0.35);
+    @apply focus:outline-none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .brutalist-input:focus {
+    border-color: rgba(47, 53, 67, 0.55);
+    box-shadow: 0 0 0 4px rgba(47, 53, 67, 0.15), 0 16px 32px -20px rgba(47, 53, 67, 0.35);
+    transform: none;
+  }
+
+  .brutalist-input::placeholder {
+    @apply text-muted-foreground;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    color: rgba(15, 23, 42, 0.55);
+  }
+
+  /* Cards */
+  .brutalist-card {
+    border: 1.5px solid var(--stroke-strong);
+    background: linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 100%);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .brutalist-card-header {
+    border-bottom: 1.5px solid var(--stroke-strong);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
+  .brutalist-card-title {
+    @apply font-sans font-black uppercase text-primary;
+    font-size: var(--text-2xl);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.015em;
+  }
+
+  .brutalist-card-description {
+    @apply font-sans text-muted-foreground uppercase;
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* Terminal */
+  .brutalist-terminal {
+    @apply font-mono;
+    border: 1.5px solid var(--stroke-strong);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    background-color: #0f1115;
+    color: #e2e4ea;
+    border-radius: calc(var(--radius) - 6px);
+    box-shadow: 0 24px 48px -32px rgba(12, 18, 32, 0.7);
+  }
+
+  .brutalist-terminal-header {
+    @apply flex items-center;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .brutalist-terminal-dot {
+    @apply w-3 h-3 rounded-full;
+    background: linear-gradient(135deg, #2f3543, #1f232d);
+    box-shadow: 0 0 0 4px rgba(47, 53, 67, 0.18);
+  }
+
+  /* Labels */
+  .brutalist-label {
+    @apply font-sans font-semibold uppercase text-primary;
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: 0.1em;
+  }
+
+  /* Dialog */
+  .brutalist-dialog-overlay {
+    @apply fixed inset-0;
+    background: radial-gradient(circle at 20% 20%, rgba(47, 53, 67, 0.18), transparent 32%), rgba(6, 8, 12, 0.6);
+    backdrop-filter: blur(8px);
+  }
+
+  .brutalist-dialog-content {
+    @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
+    @apply w-full max-w-lg;
+    border: 1.5px solid var(--stroke-strong);
+    background: linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 100%);
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-strong);
+  }
+
+  /* Tabs */
+  .brutalist-tabs-list {
+    @apply flex;
+    border: 1.5px solid var(--stroke-strong);
+    border-radius: calc(var(--radius) - 6px);
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .brutalist-tabs-trigger {
+    @apply flex-1;
+    @apply font-sans font-semibold uppercase;
+    @apply bg-transparent text-primary;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+    border-right: 1px solid var(--stroke-soft);
+    transition: background 140ms ease, color 140ms ease;
+  }
+
+  .brutalist-tabs-trigger:last-child {
+    border-right: 0;
+  }
+
+  .brutalist-tabs-trigger[data-state="active"] {
+    background: var(--surface-1);
+    color: var(--primary);
+    box-shadow: inset 0 -2px 0 rgba(47, 53, 67, 0.35);
+  }
+
+  .brutalist-tabs-content {
+    border: 1.5px solid var(--stroke-strong);
+    padding: var(--space-3);
+    border-radius: calc(var(--radius) - 4px);
+    background: var(--surface-1);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Switch */
+  .brutalist-switch {
+    @apply relative inline-flex h-8 w-14;
+    border: 1.5px solid var(--stroke-strong);
+    border-radius: 999px;
+    background: var(--surface-1);
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .brutalist-switch[data-state="checked"] {
+    background: linear-gradient(135deg, rgba(47, 53, 67, 0.18), rgba(47, 53, 67, 0.08));
+    border-color: rgba(47, 53, 67, 0.6);
+  }
+
+  .brutalist-switch-thumb {
+    @apply block h-5 w-5;
+    border: 1.5px solid var(--stroke-strong);
+    background: var(--surface-1);
+    border-radius: 999px;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    transform: translateX(2px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .brutalist-switch[data-state="checked"] .brutalist-switch-thumb {
+    transform: translateX(26px);
+    box-shadow: var(--shadow-strong);
+  }
+
+  /* Dividers */
+  .brutalist-divider {
+    position: relative;
+    height: 2px;
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-6);
+    background: linear-gradient(90deg,
+        rgba(15, 23, 42, 0) 0%,
+        rgba(15, 23, 42, 0.38) 24%,
+        rgba(47, 53, 67, 0.6) 50%,
+        rgba(15, 23, 42, 0.38) 76%,
+        rgba(15, 23, 42, 0) 100%);
+    border: 0;
+  }
+
+  .brutalist-divider::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2f3543, #1f232d);
+    box-shadow: 0 10px 30px -18px rgba(12, 13, 16, 0.4);
+  }
+
+  /* Heading Styles */
+  .brutalist-h1 {
+    @apply font-sans font-black uppercase text-primary;
+    font-size: var(--text-5xl);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .brutalist-h2 {
+    @apply font-sans font-black uppercase text-primary;
+    font-size: var(--text-3xl);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .brutalist-h3 {
+    @apply font-sans font-bold uppercase text-primary;
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+    letter-spacing: -0.01em;
+  }
+
+  /* Alert */
+  .brutalist-alert {
+    @apply font-sans;
+    border: 1.5px solid var(--stroke-strong);
+    padding: var(--space-2);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    background: var(--surface-1);
+  }
+
+  .brutalist-alert-warning {
+    background: linear-gradient(180deg, #f8f3ea 0%, #f1ece4 100%);
+    border-color: rgba(164, 168, 176, 0.55);
+  }
+
+  .brutalist-alert-error {
+    background: linear-gradient(180deg, #f6e4e4 0%, #f3dada 100%);
+    color: var(--destructive-foreground);
+    border-color: rgba(178, 58, 58, 0.6);
+    box-shadow: 0 18px 44px -28px rgba(178, 58, 58, 0.5);
+  }
+
+  .brutalist-alert-success {
+    background: linear-gradient(180deg, #f1f4f1 0%, #e5e9e5 100%);
+    color: #1f232a;
+    border-color: rgba(47, 53, 67, 0.45);
+  }
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+@layer utilities {
+  .shadow-brutal {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-brutal-lg {
+    box-shadow: 0 22px 60px -36px rgba(12, 18, 32, 0.6);
+  }
+
+  .shadow-brutal-xl {
+    box-shadow: 0 32px 90px -48px rgba(12, 18, 32, 0.65);
+  }
+
+  .shadow-brutal-action {
+    box-shadow: 0 24px 60px -36px rgba(47, 53, 67, 0.55);
+  }
+
+  .border-brutal {
+    border: 1.5px solid var(--stroke-strong);
+    border-radius: var(--radius);
+  }
+
+  .hover-brutal {
+    @apply transition-all duration-150;
+  }
+
+  .hover-brutal:hover {
+    background: var(--surface-2);
+    box-shadow: var(--shadow-strong);
+    transform: translateY(-1px);
+  }
+
+  /* Brutalist Scrollbar */
+  .brutalist-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .brutalist-scrollbar::-webkit-scrollbar-track {
+    background: var(--secondary);
+    border-left: 1px solid var(--primary);
+  }
+
+  .brutalist-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--action);
+  }
+
+  .brutalist-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--action);
+  }
+
+  /* Firefox scrollbar */
+  .brutalist-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--action) var(--secondary);
+  }
+}
+
+/* =============================================================================
+   EXISTING UTILITY STYLES (preserved)
+   ============================================================================= */
+
+/* thin scrollbar utility */
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--action);
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--action) transparent;
+}
+
+/* scrollbar that appears only when scrolling */
+.scrollbar-on-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-on-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-on-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-on-scroll.scrolling::-webkit-scrollbar-thumb {
+  background-color: var(--action);
+}
+
+.scrollbar-on-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scrollbar-on-scroll.scrolling {
+  scrollbar-color: var(--action) transparent;
+}
+
+/* hide scrollbar completely */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* transparent scrollbar for tabs */
+.scrollbar-transparent::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-transparent::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.scrollbar-transparent {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* searchbox scrollbar - transparent background */
+.searchbox-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.searchbox-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.searchbox-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+}
+
+.searchbox-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+/* shared scroll container for 3-column layout */
+.columns-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+.columns-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.columns-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.columns-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border: 2px solid transparent;
+}
+
+.columns-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
+/* horizontal scroll area for result columns */
+.horizontal-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border: 2px solid transparent;
+  transition: background-color 0.2s ease;
+}
+
+.horizontal-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes hero-phrase-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-phrase {
+  animation: hero-phrase-enter 0.6s ease both;
+  will-change: transform, opacity;
+}
+
+@keyframes keypoint-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.keypoint-fade-in {
+  animation: keypoint-fade-in 0.35s ease forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes blink {
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.blink-underscore {
+  animation: blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-phrase {
+    animation: none;
+  }
+}
+
+/* =============================================================================
+   CHART STYLES
+   ============================================================================= */
+
+/* prevent chart selection and focus outline */
+.recharts-wrapper {
+  outline: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.recharts-wrapper:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-surface {
+  outline: none !important;
+}
+
+.recharts-surface:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* =============================================================================
+   DRAG AND DROP
+   ============================================================================= */
+
+/* Drag handle styling */
+.drag-handle {
+  cursor: move !important;
+}
+
+.drag-handle:hover {
+  background-color: var(--info);
+}
+
+/* Masonry grid */
+.masonry-grid {
+  position: relative;
+  width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+.masonry-grid[data-ready="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.masonry-grid .masonry-item {
+  will-change: transform;
+}
+
+.board-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Timeline text cursor - only show text cursor when hovering over text elements */
+.select-text p,
+.select-text span,
+.select-text div[class*="text"],
+.select-text h1,
+.select-text h2,
+.select-text h3,
+.select-text h4,
+.select-text h5,
+.select-text h6,
+.select-text text {
+  cursor: text;
+}
+
+/* =============================================================================
+   REACT GRID LAYOUT
+   ============================================================================= */
+
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item>.react-resizable-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  bottom: 2px;
+  right: 2px;
+  background: var(--muted-foreground);
+  cursor: se-resize;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.react-grid-item:hover>.react-resizable-handle {
+  opacity: 1;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: var(--info);
+  opacity: 0.3;
+  transition-duration: 100ms;
+  z-index: 2;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+.react-grid-item.dropping {
+  visibility: hidden;
+}
+
+/* =============================================================================
+   EDITOR.JS STYLES
+   ============================================================================= */
+
+.notes-editor-wrapper .ce-header,
+.ce-header {
+  font-weight: 600;
+  line-height: 1.4;
+  outline: none;
+}
+
+.notes-editor-wrapper .ce-header[contenteditable="true"][data-placeholder]::before,
+.ce-header[contenteditable="true"][data-placeholder]::before {
+  opacity: 0.4;
+  content: attr(data-placeholder);
+}
+
+/* Header block styles */
+.notes-editor-wrapper h2,
+.notes-editor-wrapper .codex-editor .ce-block[data-type="header"] .ce-header h2,
+.notes-editor-wrapper .codex-editor .ce-header h2,
+.notes-editor-wrapper .ce-block[data-type="header"] .ce-header h2,
+.notes-editor-wrapper .ce-header h2,
+.codex-editor .ce-block[data-type="header"] .ce-header h2,
+.codex-editor .ce-header h2,
+.ce-block[data-type="header"] .ce-header h2,
+.ce-header h2 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.notes-editor-wrapper h3,
+.notes-editor-wrapper .codex-editor .ce-block[data-type="header"] .ce-header h3,
+.notes-editor-wrapper .codex-editor .ce-header h3,
+.notes-editor-wrapper .ce-block[data-type="header"] .ce-header h3,
+.notes-editor-wrapper .ce-header h3,
+.codex-editor .ce-block[data-type="header"] .ce-header h3,
+.codex-editor .ce-header h3,
+.ce-block[data-type="header"] .ce-header h3,
+.ce-header h3 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.notes-editor-wrapper h4,
+.notes-editor-wrapper .codex-editor .ce-block[data-type="header"] .ce-header h4,
+.notes-editor-wrapper .codex-editor .ce-header h4,
+.notes-editor-wrapper .ce-block[data-type="header"] .ce-header h4,
+.notes-editor-wrapper .ce-header h4,
+.codex-editor .ce-block[data-type="header"] .ce-header h4,
+.codex-editor .ce-header h4,
+.ce-block[data-type="header"] .ce-header h4,
+.ce-header h4 {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* =============================================================================
+   TREE VIEW STYLES
+   ============================================================================= */
+
+.tree-view-item {
+  position: relative;
+}
+
+.tree-view-row {
+  height: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.tree-view-row:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: -2px;
+}
+
+.tree-view-row-indented {
+  padding-left: 24px;
+}
+
+.tree-view-children {
+  position: relative;
+}
+
+/* Scrollbar styling for tree view */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
