@@ -13,6 +13,22 @@ let coverLetterStatusInterval = null;
 let latestTailoredId = null;
 let availableResumes = [];
 
+// Smooth progress animation state
+let currentProgress = 0;      // Currently displayed progress
+let targetProgress = 0;       // Target progress from backend
+let progressAnimationId = null;
+
+// Cover letter progress animation state
+let currentCoverProgress = 0;
+let targetCoverProgress = 0;
+let coverProgressAnimationId = null;
+
+// Terminal log state
+let currentLogs = [];
+let autoScroll = true;
+let currentCoverLogs = [];
+let autoCoverScroll = true;
+
 // DOM Elements
 const elements = {
     // Form elements
@@ -77,7 +93,17 @@ const elements = {
 
     // History
     resumeHistoryList: document.getElementById('resumeHistoryList'),
-    coverHistoryList: document.getElementById('coverHistoryList')
+    coverHistoryList: document.getElementById('coverHistoryList'),
+
+    // Terminal elements
+    terminalOutput: document.getElementById('terminalOutput'),
+    terminalLogs: document.getElementById('terminalLogs'),
+    clearLogsBtn: document.getElementById('clearLogsBtn'),
+
+    // Cover letter terminal elements
+    coverTerminalOutput: document.getElementById('coverTerminalOutput'),
+    coverTerminalLogs: document.getElementById('coverTerminalLogs'),
+    coverClearLogsBtn: document.getElementById('coverClearLogsBtn')
 };
 
 function isResumeJobActive() {
@@ -310,6 +336,14 @@ function setupEventListeners() {
 
     // Copy cover letter text
     elements.copyCoverLetterBtn.addEventListener('click', copyCoverLetterText);
+
+    // Terminal clear buttons
+    elements.clearLogsBtn.addEventListener('click', clearLogs);
+    elements.coverClearLogsBtn.addEventListener('click', clearCoverLogs);
+
+    // Terminal scroll handlers
+    elements.terminalLogs.addEventListener('scroll', handleTerminalScroll);
+    elements.coverTerminalLogs.addEventListener('scroll', handleCoverTerminalScroll);
 }
 
 
@@ -524,8 +558,13 @@ async function checkJobStatus() {
 
         const data = await response.json();
 
-        // Update progress
+        // Update progress with smooth animation
         updateProgress(data.progress, data.message);
+
+        // Append logs
+        if (data.logs) {
+            appendLogs(data.logs);
+        }
 
         // Handle status
         if (data.status === 'completed') {
@@ -590,6 +629,11 @@ async function checkCoverLetterStatus() {
 
         updateCoverLetterProgress(data.progress, data.message);
 
+        // Append logs
+        if (data.logs) {
+            appendCoverLogs(data.logs);
+        }
+
         if (data.status === 'completed') {
             stopCoverLetterStatusChecking();
             currentCoverLetterJobId = null;
@@ -617,14 +661,121 @@ function showProcessing() {
 
 
 /**
- * Update progress bar
+ * Update progress bar with smooth animation
  */
 function updateProgress(percent, message) {
-    elements.progressBar.style.width = `${percent}%`;
-    elements.progressPercent.textContent = `${percent}%`;
+    targetProgress = percent;
     elements.progressText.textContent = message;
+
+    // Start animation loop if not running
+    if (!progressAnimationId) {
+        animateProgressSmooth();
+    }
 }
 
+/**
+ * Smooth progress animation using requestAnimationFrame
+ */
+function animateProgressSmooth() {
+    // Calculate difference to target
+    const diff = targetProgress - currentProgress;
+
+    // Ease-out interpolation (0.08 = interpolation speed)
+    currentProgress += diff * 0.08;
+
+    // Update UI
+    elements.progressBar.style.width = `${currentProgress}%`;
+    elements.progressPercent.textContent = `${Math.round(currentProgress)}%`;
+
+    // Continue animation if not at target (0.1 = snap threshold)
+    if (Math.abs(diff) > 0.1) {
+        progressAnimationId = requestAnimationFrame(animateProgressSmooth);
+    } else {
+        // Snap to exact target
+        currentProgress = targetProgress;
+        elements.progressBar.style.width = `${currentProgress}%`;
+        elements.progressPercent.textContent = `${Math.round(currentProgress)}%`;
+        progressAnimationId = null;
+    }
+}
+
+
+/**
+ * Append logs from backend to terminal
+ */
+function appendLogs(newLogs) {
+    if (!newLogs || newLogs.length === 0) return;
+
+    // Filter duplicates by timestamp
+    const existingTimestamps = new Set(currentLogs.map(log => log.timestamp));
+    const uniqueLogs = newLogs.filter(log => !existingTimestamps.has(log.timestamp));
+
+    if (uniqueLogs.length === 0) return;
+
+    // Add to current logs
+    currentLogs.push(...uniqueLogs);
+
+    // Render new logs
+    uniqueLogs.forEach(log => {
+        const logLine = createLogLine(log);
+        elements.terminalLogs.appendChild(logLine);
+    });
+
+    // Show terminal if hidden
+    if (elements.terminalOutput.classList.contains('hidden')) {
+        elements.terminalOutput.classList.remove('hidden');
+    }
+
+    // Auto-scroll to bottom
+    if (autoScroll) {
+        elements.terminalLogs.scrollTop = elements.terminalLogs.scrollHeight;
+    }
+}
+
+/**
+ * Create a log line DOM element
+ */
+function createLogLine(log) {
+    const line = document.createElement('div');
+
+    // Detect special patterns for color coding
+    let levelClass = log.level;
+    if (log.message.includes('✅') || log.message.includes('[OK]')) {
+        levelClass = 'SUCCESS';
+    } else if (log.message.includes('❌') || log.message.includes('[ERROR]')) {
+        levelClass = 'ERROR';
+    }
+
+    line.className = `terminal-log-line level-${levelClass}`;
+
+    // Escape HTML to prevent XSS
+    const escapedMessage = log.message
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Simple grey text without timestamp
+    line.innerHTML = `<span class="terminal-message">${escapedMessage}</span>`;
+
+    return line;
+}
+
+/**
+ * Clear terminal logs
+ */
+function clearLogs() {
+    currentLogs = [];
+    elements.terminalLogs.innerHTML = '';
+}
+
+/**
+ * Handle terminal scroll to disable auto-scroll when user scrolls up
+ */
+function handleTerminalScroll() {
+    const { scrollTop, scrollHeight, clientHeight } = elements.terminalLogs;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+    autoScroll = isAtBottom;
+}
 
 /**
  * Show results
@@ -683,6 +834,19 @@ function resetForm() {
 
     currentJobId = null;
     stopStatusChecking();
+
+    // Reset progress animation state
+    currentProgress = 0;
+    targetProgress = 0;
+    if (progressAnimationId) {
+        cancelAnimationFrame(progressAnimationId);
+        progressAnimationId = null;
+    }
+
+    // Clear terminal
+    clearLogs();
+    elements.terminalOutput.classList.add('hidden');
+    autoScroll = true;
 }
 
 
@@ -697,9 +861,33 @@ function showCoverLetterProcessing() {
 
 
 function updateCoverLetterProgress(percent, message) {
-    elements.coverProgressBar.style.width = `${percent}%`;
-    elements.coverProgressPercent.textContent = `${percent}%`;
+    targetCoverProgress = percent;
     elements.coverProgressText.textContent = message;
+
+    // Start animation loop if not running
+    if (!coverProgressAnimationId) {
+        animateCoverProgressSmooth();
+    }
+}
+
+/**
+ * Smooth cover letter progress animation
+ */
+function animateCoverProgressSmooth() {
+    const diff = targetCoverProgress - currentCoverProgress;
+    currentCoverProgress += diff * 0.08;
+
+    elements.coverProgressBar.style.width = `${currentCoverProgress}%`;
+    elements.coverProgressPercent.textContent = `${Math.round(currentCoverProgress)}%`;
+
+    if (Math.abs(diff) > 0.1) {
+        coverProgressAnimationId = requestAnimationFrame(animateCoverProgressSmooth);
+    } else {
+        currentCoverProgress = targetCoverProgress;
+        elements.coverProgressBar.style.width = `${currentCoverProgress}%`;
+        elements.coverProgressPercent.textContent = `${Math.round(currentCoverProgress)}%`;
+        coverProgressAnimationId = null;
+    }
 }
 
 
@@ -738,6 +926,82 @@ function showCoverLetterError(message) {
     elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
 }
 
+/**
+ * Append cover letter logs to terminal
+ */
+function appendCoverLogs(newLogs) {
+    if (!newLogs || newLogs.length === 0) return;
+
+    const existingTimestamps = new Set(currentCoverLogs.map(log => log.timestamp));
+    const uniqueLogs = newLogs.filter(log => !existingTimestamps.has(log.timestamp));
+
+    if (uniqueLogs.length === 0) return;
+
+    currentCoverLogs.push(...uniqueLogs);
+
+    uniqueLogs.forEach(log => {
+        const logLine = createCoverLogLine(log);
+        elements.coverTerminalLogs.appendChild(logLine);
+    });
+
+    if (elements.coverTerminalOutput.classList.contains('hidden')) {
+        elements.coverTerminalOutput.classList.remove('hidden');
+    }
+
+    if (autoCoverScroll) {
+        elements.coverTerminalLogs.scrollTop = elements.coverTerminalLogs.scrollHeight;
+    }
+}
+
+/**
+ * Create a cover letter log line DOM element
+ */
+function createCoverLogLine(log) {
+    const line = document.createElement('div');
+
+    const time = new Date(log.timestamp).toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    let levelClass = log.level;
+    if (log.message.includes('✅') || log.message.includes('[OK]')) {
+        levelClass = 'SUCCESS';
+    } else if (log.message.includes('❌') || log.message.includes('[ERROR]')) {
+        levelClass = 'ERROR';
+    }
+
+    line.className = `terminal-log-line level-${levelClass}`;
+
+    const escapedMessage = log.message
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    line.innerHTML = `<span class="terminal-timestamp">[${time}]</span><span class="terminal-message">${escapedMessage}</span>`;
+
+    return line;
+}
+
+/**
+ * Clear cover letter terminal logs
+ */
+function clearCoverLogs() {
+    currentCoverLogs = [];
+    elements.coverTerminalLogs.innerHTML = '';
+}
+
+/**
+ * Handle cover letter terminal scroll
+ */
+function handleCoverTerminalScroll() {
+    const { scrollTop, scrollHeight, clientHeight } = elements.coverTerminalLogs;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+    autoCoverScroll = isAtBottom;
+}
+
 
 function resetCoverLetterForm() {
     elements.coverLetterForm.classList.remove('opacity-50', 'pointer-events-none');
@@ -756,6 +1020,19 @@ function resetCoverLetterForm() {
 
     currentCoverLetterJobId = null;
     stopCoverLetterStatusChecking();
+
+    // Reset cover letter progress animation state
+    currentCoverProgress = 0;
+    targetCoverProgress = 0;
+    if (coverProgressAnimationId) {
+        cancelAnimationFrame(coverProgressAnimationId);
+        coverProgressAnimationId = null;
+    }
+
+    // Clear cover letter terminal
+    clearCoverLogs();
+    elements.coverTerminalOutput.classList.add('hidden');
+    autoCoverScroll = true;
 }
 
 

@@ -22,6 +22,7 @@ from backend.api.models import (
     CoverLetterStatusResponse,
     CoverLetterResult,
     CoverLetterInfo,
+    LogEntry,
 )
 from backend.config import (
     ORIGINAL_RESUME_DIR,
@@ -140,6 +141,10 @@ async def get_job_status(job_id: str):
             validation=result_dict.get("validation", "")
         )
 
+    # Add logs
+    job_logs = resume_service.get_job_logs(job_id)
+    response.logs = [LogEntry(**log) for log in job_logs]
+
     return response
 
 
@@ -211,6 +216,10 @@ async def get_cover_letter_status(job_id: str):
             position=result_dict.get("position", "Unknown"),
             validation=result_dict.get("validation", "")
         )
+
+    # Add logs
+    job_logs = cover_letter_service.get_job_logs(job_id)
+    response.logs = [LogEntry(**log) for log in job_logs]
 
     return response
 

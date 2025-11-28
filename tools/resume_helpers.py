@@ -21,6 +21,11 @@ from datetime import datetime
 import signal
 from functools import wraps
 import threading
+import logging
+import asyncio
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Import OUTPUT_DIR configuration
 try:
@@ -34,12 +39,19 @@ except ImportError:
     AGENT_CALL_TIMEOUT = 120  # Default 2 minutes
 
 
-def _call_agent_with_timeout(agent, prompt, timeout=None):
+def _call_agent_with_timeout(agent, prompt, timeout=None, stream_output=False, progress_callback=None):
     """
     Call an agent with a timeout to prevent infinite hangs.
 
     This is a cross-platform solution that works on both Unix and Windows.
     Uses threading to implement timeout functionality.
+
+    Args:
+        agent: The Strands agent to call
+        prompt: The prompt to send
+        timeout: Timeout in seconds (default: AGENT_CALL_TIMEOUT)
+        stream_output: If True, log chunks as they arrive from the AI
+        progress_callback: Optional callback to update progress during streaming
     """
     if timeout is None:
         timeout = AGENT_CALL_TIMEOUT
@@ -49,7 +61,47 @@ def _call_agent_with_timeout(agent, prompt, timeout=None):
 
     def target():
         try:
-            result[0] = agent(prompt)
+            if stream_output:
+                # Use async streaming to show real-time output
+                async def stream_with_logging():
+                    full_response = []
+                    buffer = ""
+                    chunk_count = 0
+                    start_progress = 40
+                    end_progress = 90
+
+                    async for event in agent.stream_async(prompt):
+                        if "data" in event:
+                            chunk = event["data"]
+                            full_response.append(chunk)
+                            buffer += chunk
+                            chunk_count += 1
+
+                            # Update progress periodically (every 50 chunks)
+                            if progress_callback and chunk_count % 50 == 0:
+                                # Estimate progress based on chunks received
+                                estimated_progress = min(start_progress + (chunk_count // 50) * 5, end_progress - 5)
+                                progress_callback(estimated_progress)
+
+                            # Log complete sentences or every 100 characters
+                            if len(buffer) >= 100 or any(buffer.endswith(p) for p in ['. ', '.\n', '? ', '!\n']):
+                                logger.info(buffer.strip())
+                                buffer = ""
+
+                    # Log any remaining buffer
+                    if buffer.strip():
+                        logger.info(buffer.strip())
+
+                    return "".join(full_response)
+
+                # Run async function in thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result[0] = loop.run_until_complete(stream_with_logging())
+                loop.close()
+            else:
+                # Non-streaming mode
+                result[0] = agent(prompt)
         except Exception as e:
             exception[0] = e
 
@@ -215,8 +267,8 @@ Rules:
         }
 
     except Exception as e:
-        print(f"[WARN] Metadata extraction failed: {e}")
-        print(f"   Using fallback values")
+        logger.warning(f"[WARN] Metadata extraction failed: {e}")
+        logger.info(f"   Using fallback values")
         return {
             "company": "Unknown_Company",
             "position": "Unknown_Position"
@@ -796,10 +848,10 @@ def generate_cover_letter(
 
     resume_text = resume_path.read_text(encoding="utf-8")
 
-    print("[INFO] Extracting job metadata for cover letter...")
+    logger.info("[INFO] Extracting job metadata for cover letter...")
     metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
-    print(f"   Company: {metadata['company']}")
-    print(f"   Position: {metadata['position']}")
+    logger.info(f"   Company: {metadata['company']}")
+    logger.info(f"   Position: {metadata['position']}")
 
     contact = extract_contact_info(resume_text)
 
@@ -809,9 +861,10 @@ def generate_cover_letter(
     prompt = _build_cover_letter_prompt(job_text, resume_snapshot, metadata, contact, label)
 
     # Call agent with timeout
-    print("[INFO] Generating cover letter draft...")
-    print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
-    agent_result = _call_agent_with_timeout(letter_agent, prompt)
+    logger.info("[INFO] Generating cover letter draft...")
+    logger.info(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
+    logger.info("   Streaming AI output:")
+    agent_result = _call_agent_with_timeout(letter_agent, prompt, stream_output=True)
 
     # Parse output
     parsed = _parse_json_from_agent(agent_result)
@@ -838,7 +891,7 @@ def generate_cover_letter(
     # Write LaTeX file
     latex_document = render_cover_letter_latex(latex_body, contact, metadata)
     tex_path.write_text(latex_document, encoding="utf-8")
-    print(f"[OK] LaTeX saved: {tex_path}")
+    logger.info(f"[OK] LaTeX saved: {tex_path}")
 
     # Write plain text snapshot
     text_path = tex_path.with_suffix(".txt")
@@ -846,17 +899,17 @@ def generate_cover_letter(
         text_path.write_text(plain_text, encoding="utf-8")
     else:
         text_path.write_text(latex_body, encoding="utf-8")
-    print(f"[OK] Text saved: {text_path}")
+    logger.info(f"[OK] Text saved: {text_path}")
 
     pdf_path = None
     if render_pdf:
-        print("[INFO] Compiling cover letter PDF...")
+        logger.info("[INFO] Compiling cover letter PDF...")
         pdf_result = compile_pdf(str(tex_path), cleanup=True)
         if pdf_result.startswith("ERROR"):
-            print(pdf_result)
+            logger.info(pdf_result)
         else:
             pdf_path = pdf_result
-            print(f"[OK] PDF created: {Path(pdf_path).name}")
+            logger.info(f"[OK] PDF created: {Path(pdf_path).name}")
 
     return {
         "tex_path": str(tex_path),
@@ -878,7 +931,8 @@ def tailor_resume_sections(
     include_experience: bool = False,
     render_pdf: bool = True,
     user_company: Optional[str] = None,
-    user_title: Optional[str] = None
+    user_title: Optional[str] = None,
+    progress_callback=None
 ) -> Dict[str, Optional[str]]:
     """
     Complete workflow: extract metadata, generate sections, merge, and optionally render PDF.
@@ -913,29 +967,29 @@ def tailor_resume_sections(
 
     if user_company and user_title:
         # Use user-provided values entirely
-        print("[INFO] Using user-provided metadata (skipping LLM extraction)...")
+        logger.info("[INFO] Using user-provided metadata (skipping LLM extraction)...")
         metadata = {
             "company": user_company,
             "position": user_title
         }
     elif user_company or user_title:
         # Partial override: extract missing values
-        print("[INFO] Extracting missing job metadata from posting...")
+        logger.info("[INFO] Extracting missing job metadata from posting...")
         extracted = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
         metadata = {
             "company": user_company or extracted["company"],
             "position": user_title or extracted["position"]
         }
-        print(f"   Using: company={metadata['company']} (user={bool(user_company)}), "
+        logger.info(f"   Using: company={metadata['company']} (user={bool(user_company)}), "
               f"position={metadata['position']} (user={bool(user_title)})")
     else:
         # No user input: extract both
-        print("[INFO] Extracting job metadata from posting...")
+        logger.info("[INFO] Extracting job metadata from posting...")
         metadata = extract_job_metadata_with_llm(job_text, metadata_extractor_agent)
 
-    print(f"   Company: {metadata['company']}")
-    print(f"   Position: {metadata['position']}")
-    print()
+    logger.info(f"   Company: {metadata['company']}")
+    logger.info(f"   Position: {metadata['position']}")
+    # Blank line removed
 
     # 2. Generate filename if not provided
     if output_path is None:
@@ -944,21 +998,21 @@ def tailor_resume_sections(
             metadata["position"],
             extension=".tex"
         )
-        print(f"[INFO] Auto-generated filename: {Path(output_path).name}")
-        print()
+        logger.info(f"[INFO] Auto-generated filename: {Path(output_path).name}")
+        # Blank line removed
 
     # 3. Save job text to temporary file for section extraction
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
         f.write(job_text)
         job_posting_path = f.name
 
-    print("[INFO] Starting resume tailoring...")
-    print(f"   Original: {original_resume_path}")
-    print(f"   Output: {output_path}")
-    print()
+    logger.info("[INFO] Starting resume tailoring...")
+    logger.info(f"   Original: {original_resume_path}")
+    logger.info(f"   Output: {output_path}")
+    # Blank line removed
 
     # 1. Extract sections from original resume
-    print("[INFO] Extracting sections from original resume...")
+    logger.info("[INFO] Extracting sections from original resume...")
     resume_path = Path(original_resume_path)
     if not resume_path.exists():
         return f"ERROR: Resume not found at {original_resume_path}"
@@ -978,12 +1032,12 @@ def tailor_resume_sections(
         section_content = extract_section(resume_text, section_name)
         if section_content and not section_content.startswith("Section '"):
             extracted[section_name] = section_content
-            print(f"[OK] Extracted: {section_name}")
+            logger.info(f"[OK] Extracted: {section_name}")
         else:
-            print(f"[WARN] Could not extract: {section_name}")
+            logger.warning(f"[WARN] Could not extract: {section_name}")
     if not extracted:
-        print("[WARN] No sections extracted; falling back to full resume text for prompt context.")
-    print()
+        logger.warning("[WARN] No sections extracted; falling back to full resume text for prompt context.")
+    # Blank line removed
 
     # 2. Read job posting
     job_path = Path(job_posting_path)
@@ -993,12 +1047,12 @@ def tailor_resume_sections(
     job_text = job_path.read_text(encoding='utf-8')
 
     # 3. Copy original resume before modification
-    print("[INFO] Copying original resume to output directory...")
+    logger.info("[INFO] Copying original resume to output directory...")
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(original_resume_path, output_path)
-    print(f"[OK] Copied to: {output_path}")
-    print()
+    logger.info(f"[OK] Copied to: {output_path}")
+    # Blank line removed
 
     # 4. Build prompt using only extracted sections
     if extracted:
@@ -1009,21 +1063,31 @@ def tailor_resume_sections(
     prompt = _build_tailoring_prompt(job_text, sections_text, include_experience, user_title)
 
     # 5. Call agent with timeout (generates modified sections only)
-    print("[INFO] Generating tailored sections...")
-    print(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
-    result = _call_agent_with_timeout(section_generator_agent, prompt)
+    logger.info("[INFO] Generating tailored sections...")
+    logger.info(f"   (Timeout: {AGENT_CALL_TIMEOUT} seconds)")
+    logger.info("   Streaming AI output:")
+
+    if progress_callback:
+        progress_callback(40)  # Starting AI generation
+
+    result = _call_agent_with_timeout(section_generator_agent, prompt, stream_output=True, progress_callback=progress_callback)
+
+    # Streaming ends at ~85-90%, continue from there
 
     # 6. Parse sections from agent output
-    print("[INFO] Parsing generated sections...")
+    logger.info("[INFO] Parsing generated sections...")
     updated_sections = parse_sections(result)
 
-    print(f"   Found {len(updated_sections)} sections to update:")
+    if progress_callback:
+        progress_callback(92)  # Parsing done
+
+    logger.info(f"   Found {len(updated_sections)} sections to update:")
     for section_name in updated_sections.keys():
-        print(f"     - {section_name}")
-    print()
+        logger.info(f"     - {section_name}")
+    # Blank line removed
 
     # 7. Replace sections in copied resume
-    print("[INFO] Replacing sections in copied resume...")
+    logger.info("[INFO] Replacing sections in copied resume...")
     merge_result = merge_sections(
         original_file=output_path,
         updated_sections=updated_sections,
@@ -1033,22 +1097,22 @@ def tailor_resume_sections(
 
     _post_merge_cleanup(output_path)
 
-    print()
-    print(merge_result)
+    # Blank line removed
+    logger.info(merge_result)
 
     # 8. Compile PDF if requested
     pdf_path = None
     if render_pdf:
-        print()
-        print("[INFO] Compiling PDF...")
+        # Blank line removed
+        logger.info("[INFO] Compiling PDF...")
         pdf_result = compile_pdf(output_path, cleanup=True)
 
         if pdf_result.startswith("ERROR"):
-            print(pdf_result)
+            logger.info(pdf_result)
             pdf_path = None
         else:
             pdf_path = pdf_result
-            print(f"[OK] PDF created: {Path(pdf_path).name}")
+            logger.info(f"[OK] PDF created: {Path(pdf_path).name}")
 
     # 9. Cleanup temporary job posting file
     try:

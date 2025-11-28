@@ -15,6 +15,13 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 
+class LogEntry(BaseModel):
+    """Log entry from backend processing"""
+    timestamp: str = Field(..., description="ISO timestamp of log entry")
+    level: str = Field(..., description="Log level (INFO, WARNING, ERROR)")
+    message: str = Field(..., description="Log message")
+
+
 class TailorRequest(BaseModel):
     """Request model for tailoring a resume"""
     job_posting: str = Field(
@@ -111,6 +118,7 @@ class JobStatusResponse(BaseModel):
     completed_at: Optional[datetime] = Field(None, description="Job completion timestamp")
     result: Optional[TailorResult] = Field(None, description="Result if completed")
     error: Optional[str] = Field(None, description="Error message if failed")
+    logs: List[LogEntry] = Field(default=[], description="Captured log messages")
 
 
 class CoverLetterStatusResponse(BaseModel):
@@ -123,6 +131,7 @@ class CoverLetterStatusResponse(BaseModel):
     completed_at: Optional[datetime] = Field(None, description="Job completion timestamp")
     result: Optional[CoverLetterResult] = Field(None, description="Result if completed")
     error: Optional[str] = Field(None, description="Error message if failed")
+    logs: List[LogEntry] = Field(default=[], description="Captured log messages")
 
 
 class ResumeInfo(BaseModel):

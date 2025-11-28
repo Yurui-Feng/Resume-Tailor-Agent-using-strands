@@ -9,13 +9,14 @@ import uuid
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import asyncio
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.api.models import JobStatus, TailorResult
+from backend.services.log_handler import LogCaptureHandler
 from backend.config import (
     PROMPTS_DIR, ORIGINAL_RESUME_DIR, OUTPUT_DIR,
     HAS_OPENAI, DEFAULT_MAIN_MODEL, DEFAULT_METADATA_MODEL,
@@ -40,6 +41,7 @@ class ResumeService:
 
     def __init__(self):
         self.jobs: Dict[str, dict] = {}  # In-memory job storage
+        self.logs: Dict[str, List[dict]] = {}  # In-memory log storage
         self.agents_initialized = False
         self.section_generator_agent = None
         self.metadata_extractor_agent = None
@@ -134,6 +136,10 @@ class ResumeService:
         """Get job status"""
         return self.jobs.get(job_id)
 
+    def get_job_logs(self, job_id: str) -> List[dict]:
+        """Get captured logs for a job"""
+        return self.logs.get(job_id, [])
+
     def process_job(self, job_id: str):
         """Process a tailoring job (sync wrapper for background task)"""
         if job_id not in self.jobs:
@@ -141,6 +147,13 @@ class ResumeService:
             return
 
         job = self.jobs[job_id]
+
+        # Attach log handler for this job to the ROOT logger
+        # This captures logs from all modules (including tools.resume_helpers)
+        log_handler = LogCaptureHandler(job_id, self.logs)
+        log_handler.setLevel(logging.INFO)
+        root_logger = logging.getLogger()  # Get root logger
+        root_logger.addHandler(log_handler)
 
         try:
             # Ensure agents are initialized
@@ -196,6 +209,11 @@ class ResumeService:
             job["error"] = str(e)
             job["completed_at"] = datetime.now()
 
+        finally:
+            # Remove log handler when done
+            root_logger = logging.getLogger()
+            root_logger.removeHandler(log_handler)
+
     def _run_tailor_resume(self, job: dict) -> dict:
         """Run the tailoring process (blocking, runs in thread pool)"""
         original_resume_path = ORIGINAL_RESUME_DIR / f"{job['original_resume_id']}.tex"
@@ -203,6 +221,11 @@ class ResumeService:
         # Update progress callback (since we're in a thread, just update the dict directly)
         job["progress"] = 30
         job["message"] = "Generating tailored sections..."
+
+        # Define progress callback
+        def update_progress(percent):
+            job["progress"] = percent
+            job["message"] = f"Processing... {percent}%"
 
         # Call the main tailoring function
         result = tailor_resume_sections(
@@ -214,7 +237,8 @@ class ResumeService:
             include_experience=job["include_experience"],
             render_pdf=job["render_pdf"],
             user_company=job.get("company_name"),
-            user_title=job.get("desired_title")
+            user_title=job.get("desired_title"),
+            progress_callback=update_progress
         )
 
         job["progress"] = 90

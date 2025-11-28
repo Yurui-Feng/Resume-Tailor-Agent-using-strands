@@ -8,13 +8,14 @@ import uuid
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import asyncio
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.api.models import JobStatus
+from backend.services.log_handler import LogCaptureHandler
 from backend.config import (
     PROMPTS_DIR,
     ORIGINAL_RESUME_DIR,
@@ -40,6 +41,7 @@ class CoverLetterService:
 
     def __init__(self):
         self.jobs: Dict[str, dict] = {}
+        self.logs: Dict[str, List[dict]] = {}  # In-memory log storage
         self.agents_initialized = False
         self.letter_agent = None
         self.metadata_extractor_agent = None
@@ -127,6 +129,10 @@ class CoverLetterService:
         """Get job status."""
         return self.jobs.get(job_id)
 
+    def get_job_logs(self, job_id: str) -> List[dict]:
+        """Get captured logs for a job"""
+        return self.logs.get(job_id, [])
+
     async def process_job(self, job_id: str):
         """Process a cover letter job asynchronously."""
         if job_id not in self.jobs:
@@ -134,6 +140,11 @@ class CoverLetterService:
             return
 
         job = self.jobs[job_id]
+
+        # Attach log handler for this job
+        log_handler = LogCaptureHandler(job_id, self.logs)
+        log_handler.setLevel(logging.INFO)
+        logger.addHandler(log_handler)
 
         try:
             if not self.agents_initialized:
@@ -170,6 +181,10 @@ class CoverLetterService:
             job["message"] = f"Error: {exc}"
             job["error"] = str(exc)
             job["completed_at"] = datetime.now()
+
+        finally:
+            # Remove log handler when done
+            logger.removeHandler(log_handler)
 
     def _run_cover_letter(self, job: dict) -> dict:
         """Run the cover letter generation (blocking, run in thread pool)."""

@@ -169,6 +169,17 @@ We are looking for an experienced Machine Learning Engineer with expertise in:
                 <span id="progressPercent" class="text-sm font-medium text-blue-900">0%</span>
             </div>
 
+            <!-- Terminal Output -->
+            <div id="terminalOutput" class="terminal-container hidden">
+                <div class="terminal-header">
+                    <span class="terminal-title">Processing Logs</span>
+                    <button id="clearLogsBtn" class="terminal-clear-btn" type="button">Clear</button>
+                </div>
+                <div id="terminalLogs" class="terminal-logs">
+                    <!-- Log lines appended here by JavaScript -->
+                </div>
+            </div>
+
             <button id="cancelBtn" class="brutalist-button brutalist-button--crimson brutalist-button--compact mt-4">
                 Cancel
             </button>
@@ -273,6 +284,18 @@ We are looking for an experienced Machine Learning Engineer with expertise in:
                 <span id="coverProgressText" class="text-sm text-indigo-800">Starting...</span>
                 <span id="coverProgressPercent" class="text-sm font-medium text-indigo-900">0%</span>
             </div>
+
+            <!-- Terminal Output for Cover Letter -->
+            <div id="coverTerminalOutput" class="terminal-container hidden">
+                <div class="terminal-header">
+                    <span class="terminal-title">Processing Logs</span>
+                    <button id="coverClearLogsBtn" class="terminal-clear-btn" type="button">Clear</button>
+                </div>
+                <div id="coverTerminalLogs" class="terminal-logs">
+                    <!-- Log lines appended here by JavaScript -->
+                </div>
+            </div>
+
             <button id="coverCancelBtn" class="brutalist-button brutalist-button--crimson brutalist-button--compact mt-4">
                 Cancel
             </button>
