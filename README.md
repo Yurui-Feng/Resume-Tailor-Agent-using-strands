@@ -1,88 +1,49 @@
 # Resume Tailor Agent
 
-This repository contains a Strands Agents workflow and supporting helpers that tailor a LaTeX resume to a specific role. The notebook drives a section-only generation flow: an agent rewrites the subtitle, summary, technical proficiencies, and optionally the experience section, while Python handles parsing, merging, validation, and PDF compilation.
+AI-powered resume and cover letter customization using [Strands Agents SDK](https://strandsagents.com). This application intelligently tailors your LaTeX resume and generates matching cover letters for specific job postings using advanced language models.
 
 ---
 
-## Key Capabilities
+## Features
 
-- **Section-only generation** – only the relevant parts of the resume are sent to the model, keeping token usage manageable.
-- **Automatic metadata extraction** – a lightweight agent reads the posting to determine company and position, then generates a sanitized output filename.
-- **LaTeX-safe merging** – `tools/section_updater.py` and `tools/resume_helpers.py` inject the new sections without touching the preamble or macros.
-- **Optional PDF rendering** – run `pdflatex` locally (MiKTeX/TeX Live) or set `render_pdf=False` and upload the `.tex` file to Overleaf.
-- **posting_details.txt shortcut** – the default example cell automatically consumes `data/job_postings/posting_details.txt` when it exists, so you can drop a posting in that file and run a single cell.
-- **Cost controls** – `prompts/system_prompt.txt` now focuses on GENERATE mode only, and the helper extracts sections before prompting to keep context size minimal.
+- **Smart Resume Tailoring** – AI rewrites your Professional Summary, Technical Proficiencies, and Experience sections to match job requirements
+- **Cover Letter Generation** – Automatically generates professional cover letters in LaTeX, PDF, and plain text formats
+- **Metadata Extraction** – Lightweight AI extracts company name and job title from job postings
+- **Real-time Progress** – Watch your documents being generated with smooth progress bars and streaming AI output
+- **Multi-format Output** – Get LaTeX source files (.tex), compiled PDFs, and plain text versions
+- **Modern Web UI** – Clean interface with live progress tracking, file management, and download history
+- **Docker Support** – One-command deployment with all dependencies (including LaTeX) bundled
+- **Streaming Output** – See AI-generated text appear in real-time as it's being created
+- **LaTeX-safe Processing** – Preserves your resume's preamble, macros, and formatting
 
 ---
 
-## Requirements
+## Quick Start
 
-- Python 3.10 or newer
-- An OpenAI API key **or** AWS Bedrock credentials (placed in `.env`)
-- A LaTeX resume (`data/original/*.tex`)
-- (Optional) A local TeX distribution if you plan to compile PDFs **outside** the Docker image:
-  - Windows: MiKTeX (add `C:\Users\<you>\AppData\Local\Programs\MiKTeX\miktex\bin\x64` to `PATH`)
-  - macOS/Linux: TeX Live or MacTeX
-  - Docker already includes TeX Live, so no extra install is needed there.
+### Option 1: Docker (Recommended)
 
-Install dependencies:
+The easiest way to get started - includes Python, LaTeX, and all dependencies.
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # macOS/Linux
-pip install -r requirements.txt
-```
+# 1. Clone the repository
+git clone <your-repo-url>
+cd Strands-agent
 
----
-
-## Configuration
-
-Create a `.env` file at the project root with either OpenAI or Bedrock credentials. The notebook auto-detects what is available.
-
-```bash
-# OpenAI
-OPENAI_API_KEY=sk-your-openai-key
-
-# or AWS Bedrock
-AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token
-AWS_REGION=us-east-1
-```
-
----
-
-## Usage Options
-
-### Option 1: Docker (Recommended for Production)
-
-**Fastest way to get started** - includes LaTeX, Python, and all dependencies in one container.
-
-**Quick Start:**
-
-```bash
-# 1. Create .env file with your API credentials
+# 2. Create .env file with your OpenAI API key
 echo "OPENAI_API_KEY=sk-your-key-here" > .env
 
-# 2. Place your resume in data/original/
+# 3. Place your resume in data/original/
 mkdir -p data/original
-cp your_resume.tex data/original/AI_engineer.tex
+cp your_resume.tex data/original/
 
-# 3. Start the service
+# 4. Start the application
 docker-compose up -d
 
-# 4. Access the web interface
+# 5. Open your browser
 # http://localhost:8000
 ```
 
-**What's included:**
-- Full TeX Live installation inside the container (no local MiKTeX required)
-- Python 3.11 with all dependencies
-- FastAPI web server + frontend
-- Auto-restart policy (via Docker) to recover from failures
-- Data persistence by mounting `./data` and `./logs`
-
 **Docker Commands:**
-
 ```bash
 # View logs
 docker logs resume-tailor -f
@@ -90,243 +51,427 @@ docker logs resume-tailor -f
 # Stop the service
 docker-compose down
 
-# Restart after code changes
-docker-compose restart
-
-# Rebuild image (after changing requirements)
-docker-compose build
-docker-compose up -d
+# Rebuild after code changes
+docker-compose up --build -d
 ```
 
-**Volume Mounts (Persisted Data):**
-- `./data` → Resumes, job postings, and generated files (outputs to `data/tailored_versions/`)
-- `./.env` → API credentials (not baked into image)
-- `./logs` → Application logs
-
-**Output Location Note**
-- Docker saves tailored resumes to `./data/tailored_versions/` (via volume mount)
-- The local web server (non-Docker) saves to `~/Desktop/tailored_resumes/`
-
-**Docker vs Local**
-- *Use Docker if* you want zero setup hassle, are deploying to a server, or prefer not to install LaTeX locally.
-- *Use local/Jupyter if* you are actively developing code and want direct notebook control.
-
-### Option 2: Web Interface (Local)
-
-**Quick Start:**
+### Option 2: Local Installation
 
 ```bash
-# Install dependencies
+# 1. Install Python dependencies
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
 
-# Run the web server
+# 2. (Optional) Install LaTeX for PDF compilation
+# Windows: Install MiKTeX from https://miktex.org/download
+# macOS: brew install --cask basictex
+# Linux: sudo apt-get install texlive-latex-base texlive-fonts-recommended
+
+# 3. Create .env file
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+
+# 4. Run the web server
 python -m uvicorn backend.main:app --reload
 
-# Open your browser
+# 5. Open your browser
 # http://localhost:8000
 ```
 
-**Features:**
+---
 
-- **Clean UI** – paste job postings, select resumes, and download results
-- **Real-time progress** – watch your resume being tailored with progress updates
-- **File management** – upload new resumes, download .tex/.pdf files
-- **Results history** – view and manage all previously tailored resumes
-- **API documentation** – auto-generated docs at http://localhost:8000/docs
+## Requirements
 
-**Workflow:**
+- **Python 3.10+**
+- **OpenAI API key** (place in `.env` file) or AWS Bedrock credentials
+- **LaTeX distribution** (only for local PDF compilation - Docker includes this):
+  - Windows: [MiKTeX](https://miktex.org/download)
+  - macOS: BasicTeX (`brew install --cask basictex`)
+  - Linux: `sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra`
+  - Docker: Included automatically
 
-1. Place your base resume in `data/original/AI_engineer.tex` (or upload via web UI)
-2. Open http://localhost:8000
-3. Select your resume from the dropdown
-4. Paste the job posting text (minimum 50 characters)
-5. Choose options (include experience section, render PDF)
-6. Click "Tailor Resume" and wait for processing
-7. Download your customized .tex and .pdf files
+---
 
-### Option 3: Jupyter Notebook (Advanced)
+## Web Interface
 
-1. Place your base resume in `data/original/` (for example `data/original/AI_engineer.tex`).
-2. Save the job posting text to `data/job_postings/posting_details.txt` or any other `.txt` file under `data/job_postings/`.
-3. Launch `jupyter notebook resume_tailor.ipynb` and run the setup cells (imports, logging, agents).
-4. Use the "Tailor resume by pasting job posting text (with optional posting_details .txt)" cell:
-   - It loads `posting_details.txt` when present, otherwise shows a placeholder.
-   - It calls `tailor_resume_sections(...)`, which:
-     - extracts company/position for the filename,
-     - parses only the sections that need to change,
-     - prompts the section-generation agent,
-     - merges the output via `section_updater.py`,
-     - optionally calls `pdflatex`.
-5. Results are printed at the end: company, position, `.tex` path, `.pdf` path (if rendered), and validation status.
+The web UI provides a complete workflow for resume tailoring and cover letter generation:
 
-If `pdflatex` is not on PATH, either install a TeX distribution or set `render_pdf=False` and compile elsewhere (Overleaf, Docker image, etc.).
+### Resume Tailoring Section
+1. **Select Resume** – Choose from uploaded resumes or upload a new .tex file
+2. **Paste Job Posting** – Copy/paste the job description (minimum 50 characters)
+3. **Optional Overrides** – Customize company name or desired title
+4. **Customization Options**:
+   - Include Professional Experience section
+   - Render PDF (requires LaTeX installation or Docker)
+5. **Real-time Progress** – Watch the progress bar (0% → 100%) with streaming AI output
+6. **Download Results** – Get both .tex and .pdf files
+7. **History** – View and manage all previously tailored resumes
+
+### Cover Letter Section
+1. **Reuse Job Posting** – Automatically uses the same job posting from resume section
+2. **Optional Tailored Resume** – Select a tailored resume for more personalized cover letters
+3. **Generate** – AI creates a professional cover letter matching your resume
+4. **Download Options**:
+   - LaTeX source (.tex)
+   - Compiled PDF (.pdf)
+   - Plain text (.txt) for copy/pasting
+5. **Copy to Clipboard** – One-click copy of cover letter text
+
+### Live Features
+- **Streaming AI Output** – See text being generated in real-time
+- **Smooth Progress Animation** – Percentage-based progress with fluid animations
+- **Auto-scroll Logs** – Terminal output automatically scrolls to show latest content
+- **Responsive Design** – Works on desktop, tablet, and mobile devices
 
 ---
 
 ## How It Works
 
-- `prompts/system_prompt.txt` – concise GENERATE-mode instructions for the agent (no separate ANALYSIS mode).
-- `tools/resume_helpers.py` – orchestrates metadata extraction, filename generation, section parsing, section-only prompting, merging, and optional PDF compilation.
-- `tools/section_updater.py` – low-level helpers for extracting/replacing LaTeX sections and updating the subtitle.
-- `resume_tailor.ipynb` – interactive notebook that wires everything together, including the posting_details loader and the result display.
+### Resume Tailoring Workflow
 
-### Output Locations
+1. **Metadata Extraction** (`gpt-4o-mini`)
+   - Extracts company name and job title from posting
+   - Generates sanitized filename: `Company_Position.tex`
 
-Generated resumes are saved to different locations depending on how you run the application:
+2. **Section Extraction**
+   - Parses your original LaTeX resume
+   - Extracts only relevant sections (Summary, Skills, Experience)
+   - Preserves preamble and formatting macros
 
-- **Web Interface (Local)**: `~/Desktop/tailored_resumes/` (Windows: `C:\Users\<you>\Desktop\tailored_resumes\`)
-- **Docker**: `./data/tailored_versions/` (via volume mount)
-- **Jupyter Notebook**: `data/tailored_versions/` (in project directory)
+3. **AI Generation** (`gpt-5.1`)
+   - Sends job posting + extracted sections to AI
+   - Streams generated text in real-time to UI
+   - Rewrites sections to match job requirements
+   - Progress updates: 40% → 90%
 
-Filenames follow the pattern `<Company>_<Position>.tex` (e.g., `RBC_Applied_AI_Data_Engineer.tex`).
+4. **Section Merging**
+   - Replaces old sections with AI-generated content
+   - Validates LaTeX syntax (brace balancing)
+   - Preserves document structure
 
----
+5. **PDF Compilation** (optional)
+   - Runs `pdflatex` to generate PDF
+   - Automatic cleanup of auxiliary files
+   - Progress: 90% → 100%
 
-## Frontend Development
+### Cover Letter Workflow
 
-The web interface is a **pure static HTML/CSS/JavaScript app** with no build step required.
+1. **Context Gathering**
+   - Reads original or tailored resume for background
+   - Extracts contact information
+   - Reuses job metadata from resume tailoring
 
-### Architecture:
-- `frontend/index.html` - Main UI (Tailwind CSS for styling)
-- `frontend/app.js` - API client and application logic
-- `frontend/styles.css` - Custom animations and responsive design
+2. **AI Generation** (`gpt-5.1`)
+   - Generates cover letter based on resume snapshot
+   - Streams output in real-time
+   - Creates both plain text and LaTeX versions
 
-### How It Works:
-1. Frontend calls `POST /api/tailor` to submit tailoring jobs
-2. Polls `GET /api/jobs/{id}/status` every 2 seconds for progress updates
-3. Downloads results from `GET /api/results/{id}/tex` and `GET /api/results/{id}/pdf`
-
-### Making Changes:
-- Edit `frontend/styles.css` for styling changes
-- Edit `frontend/app.js` for functionality changes
-- **No build step** - just refresh your browser!
-
-### Running Frontend Separately (Advanced):
-
-```bash
-# Backend only (API server)
-python -m uvicorn backend.main:app --reload --port 8000
-
-# Frontend on different port (any static server)
-cd frontend
-python -m http.server 3000
-
-# Configure CORS in backend/config.py to allow localhost:3000
-```
-
-### API Documentation:
-- **Swagger UI**: http://localhost:8000/docs (interactive API testing)
-- **ReDoc**: http://localhost:8000/redoc (cleaner API documentation)
-
----
-
-## PDF Compilation Options
-
-- **Docker**: TeX Live is preinstalled and runs automatically when `render_pdf=True`.
-- **Local TeX engine**: install MiKTeX (Windows) or TeX Live/MacTeX and ensure `pdflatex` is on PATH. This applies only to the web server or notebook running directly on your machine.
-- **Remote/Overleaf**: set `render_pdf=False` locally and upload the `.tex` file to Overleaf (or another online compiler) if you cannot install LaTeX.
-
-### Installing `pdflatex` on macOS
-
-Homebrew options put the binary at `/Library/TeX/texbin`:
-
-```bash
-# Smaller install (recommended): BasicTeX
-brew install --cask basictex
-
-# Or full install (~4GB): MacTeX without GUI
-# brew install --cask mactex-no-gui
-
-# Add TeX binaries to PATH for the current shell
-export PATH="/Library/TeX/texbin:$PATH"
-
-# (BasicTeX only) update package manager and core tools
-sudo tlmgr update --self
-
-# Resume template dependencies (BasicTeX):
-# Install required LaTeX packages for the resume template
-sudo tlmgr install collection-latexrecommended collection-fontsrecommended fira fontawesome preprint tools fontaxes anyfontsize
-
-# Verify
-hash -r            # refresh shell cache
-which pdflatex
-pdflatex --version
-```
-
-Notes:
-- The PATH addition is usually automatic; the export above forces it immediately and can be added to your shell profile if needed.
-- If you want the GUI preference pane and editors, use `brew install --cask mactex` (includes everything MacTeX ships).
-- **Required packages**: `preprint` (fullpage.sty), `tools` (tabularx.sty), `fontaxes`, `anyfontsize`, `fira`, `fontawesome`
-
----
-
-## Troubleshooting
-
-- **`pdflatex not found`** (local runs only) – install MiKTeX/TeX Live and place the binary on PATH. On macOS with Homebrew installs, ensure `/Library/TeX/texbin` is in `PATH`, run `hash -r`, then retry. Docker users can ignore this because TeX Live is bundled. Example for Windows:
-  ```python
-  import os
-  os.environ["PATH"] += ";C:\\Users\\<you>\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64"
-  ```
-- **Missing LaTeX packages** – with BasicTeX, you must install the resume dependencies manually:
-  ```bash
-  sudo tlmgr install collection-latexrecommended collection-fontsrecommended fira fontawesome preprint tools fontaxes anyfontsize
-  ```
-  This covers: `fullpage`, `enumitem`, `tabularx`, `fontawesome`, Fira fonts, `fontaxes`, and `anyfontsize`.
-- **Can't find generated resumes** – Check the correct output location for your usage mode:
-  - Web Interface (Local): `~/Desktop/tailored_resumes/`
-  - Docker: `./data/tailored_versions/`
-  - Jupyter Notebook: `data/tailored_versions/`
-- **Token usage concerns** – `tailor_resume_sections` extracts only the necessary sections and uses a trimmed system prompt. If you still need to reduce cost, disable `include_experience` unless required.
-- **Model errors** – check the Strands log in `logs/` for the agent response, or rerun with a smaller model (e.g., `gpt-4o-mini`) if `gpt-5.1` is unnecessary.
+3. **Multi-format Output**
+   - LaTeX file with professional formatting
+   - Plain text version for applications
+   - Optional PDF compilation
 
 ---
 
 ## Project Structure
 
 ```
-.
-├── backend/                         # FastAPI web server
+Strands-agent/
+├── backend/                         # FastAPI backend
+│   ├── main.py                      # App entry point
+│   ├── config.py                    # Configuration (models, paths, timeouts)
 │   ├── api/
-│   │   ├── models.py               # Pydantic request/response models
-│   │   └── routes.py               # API endpoints
-│   ├── services/
-│   │   └── resume_service.py       # Agent management & job processing
-│   ├── config.py                   # Configuration
-│   └── main.py                     # FastAPI app entry point
-├── frontend/                        # Web UI
-│   ├── index.html                  # Main page
-│   ├── app.js                      # JavaScript application
-│   └── styles.css                  # Custom styles
+│   │   ├── models.py                # Request/response schemas
+│   │   └── routes.py                # API endpoints
+│   └── services/
+│       ├── resume_service.py        # Resume tailoring jobs
+│       ├── cover_letter_service.py  # Cover letter jobs
+│       └── log_handler.py           # Real-time log streaming
+│
+├── frontend/                        # Web UI (vanilla JS + Tailwind CSS)
+│   ├── index.html                   # Main page
+│   ├── app.js                       # Application logic
+│   └── styles.css                   # Custom styling
+│
+├── tools/                           # Core utilities
+│   ├── resume_helpers.py            # Main workflow orchestration
+│   └── section_updater.py           # LaTeX parsing and merging
+│
+├── prompts/                         # AI system prompts
+│   ├── system_prompt.txt            # Resume tailoring instructions
+│   └── cover_letter_system_prompt.txt
+│
 ├── data/
-│   ├── job_postings/
-│   │   └── posting_details.txt     # optional default posting
-│   ├── original/                   # your source resumes
-│   └── tailored_versions/          # Notebook outputs (Web: ~/Desktop/tailored_resumes/)
-├── logs/                           # Strands run logs
-├── prompts/
-│   └── system_prompt.txt           # Agent instructions
-├── tools/
-│   ├── __init__.py                 # Package exports
-│   ├── resume_helpers.py           # Main workflow orchestration
-│   └── section_updater.py          # LaTeX section manipulation
-├── resume_tailor.ipynb             # Jupyter notebook interface
-├── requirements.txt                # Python dependencies
+│   ├── original/                    # Your source resumes (.tex)
+│   ├── tailored_resumes/            # Generated tailored resumes
+│   ├── cover_letters/               # Generated cover letters
+│   └── job_postings/                # Job posting files (optional)
+│
+├── logs/                            # Application logs
+├── Dockerfile                       # Docker image definition
+├── docker-compose.yml               # Docker Compose config
+├── requirements.txt                 # Python dependencies
+├── resume_tailor.ipynb              # Jupyter notebook interface (advanced)
 └── README.md
 ```
 
 ---
 
-## License
+## API Endpoints
 
-This project is released under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license (see `LICENSE`). You may use, share, and adapt the code for non-commercial purposes with attribution. Commercial use is not permitted without explicit permission. Your personal resume content remains yours; keep `.env`, resumes, and postings out of version control.
+### Resume Tailoring
+- `POST /api/tailor` – Create tailoring job
+- `GET /api/jobs/{job_id}/status` – Check status with streaming logs
+- `GET /api/resumes` – List available resumes
+- `POST /api/resumes/upload` – Upload new resume
+- `GET /api/results` – List tailored resumes
+- `GET /api/results/{id}/tex` – Download LaTeX file
+- `GET /api/results/{id}/pdf` – Download PDF
+- `DELETE /api/results/{id}` – Delete result
+
+### Cover Letters
+- `POST /api/cover-letter` – Create cover letter job
+- `GET /api/cover-letter/jobs/{job_id}/status` – Check status
+- `GET /api/cover-letter/results` – List cover letters
+- `GET /api/cover-letter/results/{id}/tex` – Download LaTeX
+- `GET /api/cover-letter/results/{id}/pdf` – Download PDF
+- `GET /api/cover-letter/results/{id}/text` – Download plain text
+- `DELETE /api/cover-letter/results/{id}` – Delete cover letter
+
+### Documentation
+- **Swagger UI**: http://localhost:8000/docs (interactive testing)
+- **ReDoc**: http://localhost:8000/redoc (clean documentation)
+- **Health Check**: http://localhost:8000/api/health
 
 ---
 
-## Further Reading
+## Configuration
 
-- Strands Agents SDK documentation: https://strandsagents.com  
-- AWS Bedrock: https://aws.amazon.com/bedrock  
-- MiKTeX downloads: https://miktex.org/download  
-- TeX Live: https://tug.org/texlive/  
+### Environment Variables (.env)
 
-Tailor confidently, keep your LaTeX clean, and version your resumes per role without leaving the notebook.
+```bash
+# OpenAI (recommended)
+OPENAI_API_KEY=sk-your-openai-key
+
+# Or AWS Bedrock (alternative)
+AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token
+AWS_REGION=us-east-1
+# Or use standard AWS credentials:
+# AWS_ACCESS_KEY_ID=your-access-key
+# AWS_SECRET_ACCESS_KEY=your-secret-key
+```
+
+### AI Models (backend/config.py)
+
+```python
+DEFAULT_MAIN_MODEL = "gpt-5.1"          # Resume & cover letter generation
+DEFAULT_METADATA_MODEL = "gpt-4o-mini"  # Company/position extraction
+AGENT_CALL_TIMEOUT = 120                # Max seconds per AI call
+JOB_TIMEOUT = 300                       # Max seconds per job
+```
+
+### Output Directories
+
+All outputs are saved to the `data/` directory:
+- `data/tailored_resumes/` – Tailored resume files
+- `data/cover_letters/` – Cover letter files
+- `logs/` – Application logs
+
+Filenames follow the pattern: `Company_Position.tex` (e.g., `Google_Senior_ML_Engineer.tex`)
+
+---
+
+## Advanced: Jupyter Notebook
+
+For developers who prefer interactive notebooks:
+
+```bash
+# 1. Install Jupyter
+pip install jupyter
+
+# 2. Launch notebook
+jupyter notebook resume_tailor.ipynb
+
+# 3. Run cells to:
+#    - Initialize agents
+#    - Load job posting from data/job_postings/posting_details.txt
+#    - Generate tailored resume
+#    - View results inline
+```
+
+The notebook provides direct access to the `tailor_resume_sections()` function for customization.
+
+---
+
+## Troubleshooting
+
+### `pdflatex not found` (Local installations only)
+
+**Docker users**: This error won't occur - LaTeX is included.
+
+**Local users**: Install a LaTeX distribution:
+
+**Windows (MiKTeX)**:
+1. Download from https://miktex.org/download
+2. Install and add to PATH: `C:\Users\<you>\AppData\Local\Programs\MiKTeX\miktex\bin\x64`
+3. Restart terminal
+
+**macOS (BasicTeX)**:
+```bash
+brew install --cask basictex
+export PATH="/Library/TeX/texbin:$PATH"
+
+# Install required packages
+sudo tlmgr update --self
+sudo tlmgr install collection-latexrecommended collection-fontsrecommended \
+  fira fontawesome preprint tools fontaxes anyfontsize
+```
+
+**Linux**:
+```bash
+sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra
+```
+
+**Alternative**: Set `render_pdf=False` in the UI and upload .tex files to [Overleaf](https://overleaf.com) for compilation.
+
+### Missing LaTeX Packages
+
+If PDF compilation fails with missing package errors:
+
+```bash
+# BasicTeX/MacTeX (macOS)
+sudo tlmgr install <package-name>
+
+# MiKTeX (Windows) - auto-installs on first use, or:
+mpm --install=<package-name>
+
+# TeX Live (Linux)
+sudo apt-get install texlive-<package-category>
+```
+
+Common packages needed: `fullpage`, `enumitem`, `tabularx`, `fontawesome`, `fira`, `fontaxes`, `anyfontsize`
+
+### Docker Issues
+
+**Container won't start**:
+```bash
+# Check logs
+docker logs resume-tailor
+
+# Rebuild image
+docker-compose down
+docker-compose up --build
+```
+
+**Can't find generated files**:
+- Check `./data/tailored_resumes/` (Docker mounts this directory)
+- Ensure `.env` file exists and is mounted
+
+**Port 8000 already in use**:
+```bash
+# Edit docker-compose.yml, change port mapping:
+ports:
+  - "8001:8000"  # Use port 8001 instead
+```
+
+### API/Model Issues
+
+**`No API key configured`**:
+- Ensure `.env` file exists in project root
+- Check `OPENAI_API_KEY` is set correctly
+- Restart the server/container
+
+**Timeout errors**:
+- Increase `AGENT_CALL_TIMEOUT` in `backend/config.py`
+- Long job postings may require more time
+
+**Token/cost concerns**:
+- Uncheck "Include Professional Experience" to reduce token usage
+- Use `gpt-4o-mini` for main model (edit `DEFAULT_MAIN_MODEL` in config)
+
+---
+
+## Development
+
+### Running Frontend Separately
+
+```bash
+# Terminal 1: Backend API only
+python -m uvicorn backend.main:app --reload --port 8000
+
+# Terminal 2: Frontend static server
+cd frontend
+python -m http.server 3000
+
+# Update CORS in backend/config.py:
+ALLOWED_ORIGINS = ["http://localhost:3000"]
+```
+
+### Making Changes
+
+**Frontend** (no build step required):
+1. Edit `frontend/app.js`, `frontend/styles.css`, or `frontend/index.html`
+2. Refresh browser - changes are immediate
+
+**Backend**:
+1. Edit files in `backend/`, `tools/`, or `prompts/`
+2. Server auto-reloads with `--reload` flag
+3. For Docker: `docker-compose restart`
+
+**Testing**:
+- Use Swagger UI at http://localhost:8000/docs to test API endpoints
+- Check `logs/` directory for detailed application logs
+
+---
+
+## Contributing
+
+Contributions are welcome! Areas for improvement:
+- Additional output formats (Word, Markdown)
+- More AI model providers (Anthropic Claude, Google Gemini)
+- Enhanced UI features (dark mode, templates)
+- Automated testing suite
+
+---
+
+## License
+
+This project is released under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license.
+
+You may:
+- Use for personal job applications
+- Modify and adapt the code
+- Share with attribution
+
+You may not:
+- Use for commercial purposes without permission
+- Sell or monetize the service
+
+Your resume content remains yours - keep `.env`, resumes, and job postings out of version control.
+
+---
+
+## Resources
+
+- **Strands Agents SDK**: https://strandsagents.com
+- **OpenAI Platform**: https://platform.openai.com
+- **AWS Bedrock**: https://aws.amazon.com/bedrock
+- **LaTeX Project**: https://www.latex-project.org
+- **MiKTeX**: https://miktex.org
+- **Overleaf**: https://overleaf.com (online LaTeX editor)
+
+---
+
+## Tips for Best Results
+
+1. **Resume Format**: Use the provided LaTeX template structure with clearly marked sections (`\section{Professional Summary}`, etc.)
+2. **Job Postings**: Include full job descriptions with requirements and responsibilities
+3. **Company Override**: Use the company name field if AI extracts incorrectly
+4. **Experience Section**: Only include when needed - saves tokens and processing time
+5. **Cover Letters**: Use tailored resumes for more personalized cover letters
+6. **Review Output**: Always review AI-generated content before submitting applications
+
+---
+
+**Built with [Strands Agents SDK](https://strandsagents.com)**
