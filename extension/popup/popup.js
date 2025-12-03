@@ -75,16 +75,6 @@ async function init() {
  * Setup event listeners
  */
 function setupEventListeners() {
-  // Pop-out button
-  const popOutBtn = document.getElementById('popOutBtn');
-  if (popOutBtn) {
-    popOutBtn.addEventListener('click', () => {
-      chrome.tabs.create({
-        url: chrome.runtime.getURL('popup/popup.html')
-      });
-    });
-  }
-
   // Character count
   elements.jobPosting.addEventListener('input', updateCharCount);
 

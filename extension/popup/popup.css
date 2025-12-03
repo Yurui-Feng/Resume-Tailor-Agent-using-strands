@@ -58,21 +58,6 @@ body.brutalist-body {
     opacity: 0.7;
 }
 
-.popout-btn {
-    background: transparent;
-    border: 1px solid var(--brutal-stroke);
-    border-radius: 6px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s;
-}
-
-.popout-btn:hover {
-    background: var(--brutal-bg-veil);
-    transform: translateY(-1px);
-}
-
 /* View Containers */
 .view-container {
     display: block;
