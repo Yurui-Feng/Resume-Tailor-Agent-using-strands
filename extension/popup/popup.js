@@ -372,37 +372,37 @@ function showResults(result) {
   elements.resultCompany.textContent = result.company || '-';
   elements.resultPosition.textContent = result.position || '-';
 
-  // Set download links
-  const resultId = result.id || result.result_id;
-  console.log('Result ID:', resultId);
-
-  if (!resultId) {
-    console.error('No result ID found in result object');
+  // Get file paths from result (backend returns full system paths)
+  if (!result.tex_path) {
+    console.error('No tex_path found in result object');
     return;
   }
 
-  const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
-  const pdfUrl = `http://localhost:8000/api/results/${resultId}/pdf`;
+  // Extract filename from path
+  const texFilename = result.tex_path.split('\\').pop().split('/').pop();
+  const pdfFilename = result.pdf_path ? result.pdf_path.split('\\').pop().split('/').pop() : null;
 
-  // Sanitize filename
-  const sanitize = (str) => str.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-  const company = sanitize(result.company || 'Resume');
-  const position = sanitize(result.position || 'Tailored');
+  const texUrl = `http://localhost:8000/data/tailored_resumes/${texFilename}`;
+  const pdfUrl = pdfFilename ? `http://localhost:8000/data/tailored_resumes/${pdfFilename}` : null;
 
-  console.log('Setting download URLs:', { texUrl, pdfUrl });
-  console.log('Filenames:', { tex: `${company}_${position}.tex`, pdf: `${company}_${position}.pdf` });
+  console.log('Download URLs:', { texUrl, pdfUrl });
 
-  // Set download attributes
+  // Set download attributes for .tex
   elements.downloadTexBtn.setAttribute('href', texUrl);
-  elements.downloadPdfBtn.setAttribute('href', pdfUrl);
+  elements.downloadTexBtn.setAttribute('download', texFilename);
   elements.downloadTexBtn.setAttribute('target', '_blank');
-  elements.downloadPdfBtn.setAttribute('target', '_blank');
-  elements.downloadTexBtn.setAttribute('download', `${company}_${position}.tex`);
-  elements.downloadPdfBtn.setAttribute('download', `${company}_${position}.pdf`);
 
-  console.log('Download button attributes set');
-  console.log('TEX button:', elements.downloadTexBtn.outerHTML);
-  console.log('PDF button:', elements.downloadPdfBtn.outerHTML);
+  // Set download attributes for .pdf if available
+  if (pdfUrl) {
+    elements.downloadPdfBtn.setAttribute('href', pdfUrl);
+    elements.downloadPdfBtn.setAttribute('download', pdfFilename);
+    elements.downloadPdfBtn.setAttribute('target', '_blank');
+    elements.downloadPdfBtn.style.display = '';
+  } else {
+    elements.downloadPdfBtn.style.display = 'none';
+  }
+
+  console.log('Download buttons configured successfully');
 
   showView('resultsView');
 }
