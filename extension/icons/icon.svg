@@ -1,0 +1,16 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" fill="#2f3543" rx="16"/>
+
+  <!-- Document icon -->
+  <rect x="32" y="24" width="64" height="80" fill="white" rx="4"/>
+
+  <!-- Lines representing text -->
+  <rect x="40" y="36" width="48" height="4" fill="#2f3543" rx="2"/>
+  <rect x="40" y="46" width="48" height="4" fill="#2f3543" rx="2"/>
+  <rect x="40" y="56" width="36" height="4" fill="#2f3543" rx="2"/>
+
+  <!-- "AI" badge -->
+  <circle cx="88" cy="88" r="20" fill="#b23a3a"/>
+  <text x="88" y="96" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">AI</text>
+</svg>

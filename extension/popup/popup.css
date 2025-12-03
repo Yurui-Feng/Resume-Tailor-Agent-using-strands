@@ -1,0 +1,362 @@
+/* Brutalist Theme Variables (adapted from frontend/styles.css) */
+:root {
+    --brutal-bg-base: #f5f5f7;
+    --brutal-bg-soft: #f0f1f3;
+    --brutal-bg-veil: #e8eaed;
+    --brutal-shadow: #16181d;
+    --brutal-stroke: rgba(22, 24, 29, 0.16);
+    --brutal-stroke-strong: rgba(22, 24, 29, 0.26);
+    --brutal-accent: #2f3543;
+    --brutal-crimson: #b23a3a;
+    --brutal-emerald: #2f3543;
+    --brutal-muted: #16181d;
+    --brutal-panel: #ffffff;
+    --brutal-radius-md: 18px;
+    --brutal-radius-sm: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body.brutalist-body {
+    width: 400px;
+    min-height: 500px;
+    max-height: 600px;
+    background-color: var(--brutal-bg-base);
+    background-image: linear-gradient(180deg, #f6f6f8 0%, #f0f1f3 50%, #e9eaed 100%);
+    color: var(--brutal-muted);
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-y: auto;
+}
+
+.brutalist-shell {
+    padding: 16px;
+}
+
+/* Header */
+.brutalist-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1.5px solid var(--brutal-stroke);
+}
+
+.brutalist-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brutal-accent);
+    margin-bottom: 4px;
+}
+
+.brutalist-subtitle {
+    font-size: 12px;
+    color: var(--brutal-muted);
+    opacity: 0.7;
+}
+
+/* View Containers */
+.view-container {
+    display: block;
+}
+
+.view-container.hidden {
+    display: none;
+}
+
+.view-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--brutal-accent);
+}
+
+.error-title {
+    color: var(--brutal-crimson);
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--brutal-muted);
+}
+
+.brutalist-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--brutal-stroke);
+    border-radius: var(--brutal-radius-sm);
+    background: var(--brutal-panel);
+    color: var(--brutal-muted);
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.brutalist-textarea:focus {
+    outline: none;
+    border-color: var(--brutal-accent);
+}
+
+.char-count {
+    display: block;
+    font-size: 11px;
+    color: var(--brutal-muted);
+    opacity: 0.6;
+    margin-top: 4px;
+}
+
+.brutalist-select {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--brutal-stroke);
+    border-radius: var(--brutal-radius-sm);
+    background: var(--brutal-panel);
+    color: var(--brutal-muted);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.brutalist-select:focus {
+    outline: none;
+    border-color: var(--brutal-accent);
+}
+
+/* Checkboxes */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.brutalist-checkbox {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+/* Buttons */
+.brutalist-button {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--brutal-stroke-strong);
+    border-radius: var(--brutal-radius-sm);
+    background: var(--brutal-panel);
+    color: var(--brutal-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+}
+
+.brutalist-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.brutalist-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.brutalist-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.brutalist-button--accent {
+    background: var(--brutal-accent);
+    color: white;
+    border-color: var(--brutal-accent);
+}
+
+.brutalist-button--crimson {
+    background: var(--brutal-crimson);
+    color: white;
+    border-color: var(--brutal-crimson);
+}
+
+.brutalist-button--emerald {
+    background: var(--brutal-emerald);
+    color: white;
+    border-color: var(--brutal-emerald);
+}
+
+.brutalist-button--ghost {
+    background: transparent;
+    border-color: var(--brutal-stroke);
+}
+
+/* Button Group */
+.button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* Links */
+.brutalist-link {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: var(--brutal-accent);
+    text-decoration: none;
+    padding: 8px;
+    border-radius: var(--brutal-radius-sm);
+    transition: background-color 0.2s;
+}
+
+.brutalist-link:hover {
+    background-color: var(--brutal-bg-veil);
+}
+
+/* Chips */
+.brutalist-chip {
+    padding: 8px 12px;
+    border-radius: var(--brutal-radius-sm);
+    font-size: 12px;
+    margin-bottom: 12px;
+    border: 1.5px solid;
+}
+
+.brutalist-chip--success {
+    background: #e6f7e6;
+    border-color: #4caf50;
+    color: #2e7d32;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin-bottom: 16px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--brutal-bg-veil);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--brutal-accent);
+    transition: width 0.3s ease;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--brutal-accent);
+}
+
+.progress-text {
+    color: var(--brutal-muted);
+    opacity: 0.7;
+}
+
+/* Terminal Logs */
+.terminal-container {
+    background: #1e1e1e;
+    border: 1.5px solid var(--brutal-stroke);
+    border-radius: var(--brutal-radius-sm);
+    padding: 10px;
+    margin-bottom: 16px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 11px;
+}
+
+.terminal-logs {
+    color: #d4d4d4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.terminal-logs:empty::before {
+    content: "Waiting for logs...";
+    opacity: 0.5;
+}
+
+/* Custom scrollbar for terminal */
+.terminal-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terminal-container::-webkit-scrollbar-track {
+    background: #2e2e2e;
+}
+
+.terminal-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+.terminal-container::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* Result Meta */
+.result-meta {
+    background: var(--brutal-bg-veil);
+    border: 1.5px solid var(--brutal-stroke);
+    border-radius: var(--brutal-radius-sm);
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.meta-item {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.meta-item:last-child {
+    margin-bottom: 0;
+}
+
+.meta-item strong {
+    color: var(--brutal-accent);
+    font-weight: 600;
+}
+
+/* Error Message */
+.error-message {
+    background: #ffebee;
+    border: 1.5px solid var(--brutal-crimson);
+    border-radius: var(--brutal-radius-sm);
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--brutal-crimson);
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}

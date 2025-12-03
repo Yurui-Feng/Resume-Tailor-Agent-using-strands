@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Tailor</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body class="brutalist-body">
+    <div class="brutalist-shell">
+        <!-- Header -->
+        <div class="brutalist-header">
+            <h1 class="brutalist-title">Resume Tailor</h1>
+            <p class="brutalist-subtitle">AI-powered resume tailoring</p>
+        </div>
+
+        <!-- Form View -->
+        <div id="formView" class="view-container">
+            <!-- Auto-scrape notification -->
+            <div id="scrapedNotice" class="brutalist-chip brutalist-chip--success hidden">
+                Job posting detected and auto-filled
+            </div>
+
+            <!-- Job Posting Textarea -->
+            <div class="form-group">
+                <label for="jobPosting" class="form-label">Job Posting</label>
+                <textarea
+                    id="jobPosting"
+                    class="brutalist-textarea"
+                    rows="8"
+                    placeholder="Paste job posting here or let extension auto-fill from LinkedIn/Indeed..."
+                    minlength="50"
+                ></textarea>
+                <span id="charCount" class="char-count">0 characters (min 50)</span>
+            </div>
+
+            <!-- Resume Dropdown -->
+            <div class="form-group">
+                <label for="resumeSelect" class="form-label">Resume</label>
+                <select id="resumeSelect" class="brutalist-select">
+                    <option value="">Loading resumes...</option>
+                </select>
+            </div>
+
+            <!-- Checkboxes -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="includeExperience" class="brutalist-checkbox">
+                    <span>Update Experience Section</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="renderPdf" class="brutalist-checkbox" checked>
+                    <span>Generate PDF</span>
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="submitBtn" class="brutalist-button brutalist-button--accent" disabled>
+                Tailor Resume
+            </button>
+
+            <!-- Link to full app -->
+            <a href="http://localhost:8000" target="_blank" class="brutalist-link">
+                Open Full App →
+            </a>
+        </div>
+
+        <!-- Processing View -->
+        <div id="processingView" class="view-container hidden">
+            <h3 class="view-title">Processing Your Resume</h3>
+
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progressBar" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="progressPercent" class="progress-percent">0%</span>
+                    <span id="progressText" class="progress-text">Starting...</span>
+                </div>
+            </div>
+
+            <!-- Compact Terminal Logs -->
+            <div class="terminal-container">
+                <div id="terminalLogs" class="terminal-logs"></div>
+            </div>
+
+            <!-- Cancel Button -->
+            <button id="cancelBtn" class="brutalist-button brutalist-button--crimson">
+                Cancel
+            </button>
+        </div>
+
+        <!-- Results View -->
+        <div id="resultsView" class="view-container hidden">
+            <h3 class="view-title">Resume Tailored Successfully!</h3>
+
+            <div class="result-meta">
+                <div class="meta-item">
+                    <strong>Company:</strong> <span id="resultCompany">-</span>
+                </div>
+                <div class="meta-item">
+                    <strong>Position:</strong> <span id="resultPosition">-</span>
+                </div>
+            </div>
+
+            <!-- Download Buttons -->
+            <div class="button-group">
+                <a id="downloadTexBtn" class="brutalist-button brutalist-button--emerald" download>
+                    Download .tex
+                </a>
+                <a id="downloadPdfBtn" class="brutalist-button brutalist-button--emerald" download>
+                    Download .pdf
+                </a>
+            </div>
+
+            <!-- View Full Results -->
+            <a id="viewResultsBtn" href="http://localhost:8000" target="_blank"
+               class="brutalist-button brutalist-button--ghost">
+                View Full Results & History →
+            </a>
+
+            <!-- New Job Button -->
+            <button id="newJobBtn" class="brutalist-button brutalist-button--accent">
+                Tailor Another Resume
+            </button>
+        </div>
+
+        <!-- Error View -->
+        <div id="errorView" class="view-container hidden">
+            <h3 class="view-title error-title">Error</h3>
+            <p id="errorMessage" class="error-message"></p>
+            <button id="retryBtn" class="brutalist-button brutalist-button--accent">
+                Try Again
+            </button>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
