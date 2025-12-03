@@ -381,22 +381,17 @@ function showResults(result) {
     const company = sanitize(result.company || 'Resume');
     const position = sanitize(result.position || 'Tailored');
 
+    // Remove onclick handlers, just use href directly
     elements.downloadTexBtn.href = texUrl;
     elements.downloadPdfBtn.href = pdfUrl;
+    elements.downloadTexBtn.target = '_blank';
+    elements.downloadPdfBtn.target = '_blank';
+    elements.downloadTexBtn.download = `${company}_${position}.tex`;
+    elements.downloadPdfBtn.download = `${company}_${position}.pdf`;
 
-    // Add click handlers for download
-    // Use window.open approach which works better in side panel
-    elements.downloadTexBtn.onclick = (e) => {
-      e.preventDefault();
-      console.log('Downloading .tex from:', texUrl);
-      window.open(texUrl, '_blank');
-    };
-
-    elements.downloadPdfBtn.onclick = (e) => {
-      e.preventDefault();
-      console.log('Downloading .pdf from:', pdfUrl);
-      window.open(pdfUrl, '_blank');
-    };
+    // Remove any existing onclick
+    elements.downloadTexBtn.onclick = null;
+    elements.downloadPdfBtn.onclick = null;
   }
 
   showView('resultsView');
