@@ -350,8 +350,18 @@ function animateProgress() {
 function appendLogs(logs) {
   if (!logs || logs.length === 0) return;
 
+  // Convert logs to strings (in case they're objects)
+  const logStrings = logs.map(log => {
+    if (typeof log === 'string') return log;
+    if (typeof log === 'object' && log !== null) {
+      // If it's an object, try to get a meaningful string
+      return log.message || log.text || JSON.stringify(log);
+    }
+    return String(log);
+  });
+
   const currentText = elements.terminalLogs.textContent;
-  const newText = logs.join('\n');
+  const newText = logStrings.join('\n');
 
   if (currentText) {
     elements.terminalLogs.textContent = currentText + '\n' + newText;

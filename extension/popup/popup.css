@@ -283,9 +283,9 @@ body.brutalist-body {
 /* Terminal Logs */
 .terminal-container {
     background: #1e1e1e;
-    border: 1.5px solid var(--brutal-stroke);
-    border-radius: var(--brutal-radius-sm);
-    padding: 10px;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 12px;
     margin-bottom: 16px;
     max-height: 150px;
     overflow-y: auto;
