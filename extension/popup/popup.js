@@ -376,18 +376,47 @@ function showResults(result) {
     const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
     const pdfUrl = `http://localhost:8000/api/results/${resultId}/pdf`;
 
+    // Sanitize filename
+    const sanitize = (str) => str.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+    const company = sanitize(result.company || 'Resume');
+    const position = sanitize(result.position || 'Tailored');
+
     elements.downloadTexBtn.href = texUrl;
     elements.downloadPdfBtn.href = pdfUrl;
 
     // Add click handlers for download
     elements.downloadTexBtn.onclick = (e) => {
       e.preventDefault();
-      chrome.downloads.download({ url: texUrl, filename: `${result.company}_${result.position}.tex` });
+      console.log('Downloading .tex from:', texUrl);
+      chrome.downloads.download({
+        url: texUrl,
+        filename: `${company}_${position}.tex`,
+        saveAs: false
+      }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+          console.error('Download error:', chrome.runtime.lastError);
+          alert('Download failed: ' + chrome.runtime.lastError.message);
+        } else {
+          console.log('Download started:', downloadId);
+        }
+      });
     };
 
     elements.downloadPdfBtn.onclick = (e) => {
       e.preventDefault();
-      chrome.downloads.download({ url: pdfUrl, filename: `${result.company}_${result.position}.pdf` });
+      console.log('Downloading .pdf from:', pdfUrl);
+      chrome.downloads.download({
+        url: pdfUrl,
+        filename: `${company}_${position}.pdf`,
+        saveAs: false
+      }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+          console.error('Download error:', chrome.runtime.lastError);
+          alert('Download failed: ' + chrome.runtime.lastError.message);
+        } else {
+          console.log('Download started:', downloadId);
+        }
+      });
     };
   }
 
