@@ -8,6 +8,8 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 
 - **Smart Resume Tailoring** – AI rewrites your Professional Summary, Technical Proficiencies, and Experience sections to match job requirements
 - **Cover Letter Generation** – Automatically generates professional cover letters in LaTeX, PDF, and plain text formats
+- **Chrome Extension** – Tailor resumes directly from job posting pages without switching tabs (addresses [Issue #6](https://github.com/your-repo/issues/6))
+- **Auto-Scraping** – Automatically extracts job descriptions from LinkedIn and Indeed job pages
 - **Metadata Extraction** – Lightweight AI extracts company name and job title from job postings
 - **Real-time Progress** – Watch your documents being generated with smooth progress bars and streaming AI output
 - **Multi-format Output** – Get LaTeX source files (.tex), compiled PDFs, and plain text versions
@@ -20,7 +22,33 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 
 ## Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Chrome Extension (Fastest for Job Applications)
+
+Streamline your workflow by tailoring resumes directly from job posting pages:
+
+```bash
+# 1. Start the backend (Docker or local)
+docker-compose up -d
+# OR
+python -m uvicorn backend.main:app --reload
+
+# 2. Load extension in Chrome
+# - Open chrome://extensions/
+# - Enable "Developer mode" (top-right toggle)
+# - Click "Load unpacked"
+# - Select folder: d:\Strands-agent\extension
+
+# 3. Use the extension
+# - Navigate to a LinkedIn or Indeed job posting
+# - Click the Resume Tailor extension icon
+# - Job description auto-fills automatically
+# - Select resume → Click "Tailor Resume"
+# - Download results directly from the side panel
+```
+
+**📖 Full extension documentation:** See [extension/README.md](extension/README.md) and [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md)
+
+### Option 2: Docker (Recommended for Web UI)
 
 The easiest way to get started - includes Python, LaTeX, and all dependencies.
 
@@ -55,7 +83,7 @@ docker-compose down
 docker-compose up --build -d
 ```
 
-### Option 2: Local Installation
+### Option 3: Local Installation
 
 ```bash
 # 1. Install Python dependencies
@@ -78,6 +106,43 @@ python -m uvicorn backend.main:app --reload
 # 5. Open your browser
 # http://localhost:8000
 ```
+
+---
+
+## Chrome Extension Usage
+
+The Chrome extension eliminates the workflow bottleneck of switching between job boards and the Resume Tailor app.
+
+### Features
+- **Side Panel Interface** – Stays open while you browse job postings
+- **Auto-Scraping** – Automatically fills job descriptions from LinkedIn and Indeed
+- **In-Panel Progress** – Watch real-time progress with streaming AI output
+- **Direct Downloads** – Download .tex and .pdf files without leaving the job page
+- **Persistent Preferences** – Remembers your last-used resume and settings
+
+### Supported Job Boards
+- **LinkedIn Jobs** – `*.linkedin.com/jobs/*`
+- **Indeed** – `*.indeed.com/viewjob*`
+- **Any Other Site** – Manual paste works everywhere
+
+### Basic Workflow
+1. Navigate to a job posting on LinkedIn or Indeed
+2. Click the Resume Tailor extension icon in Chrome toolbar
+3. Job description auto-fills (or paste manually for other sites)
+4. Select your resume from the dropdown
+5. Configure options (include experience, generate PDF)
+6. Click "Tailor Resume"
+7. Watch progress bar and streaming AI logs
+8. Download .tex and .pdf files when complete
+
+### Installation
+See [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md) for detailed visual instructions.
+
+### Time Savings
+**Before:** Find job → Copy text → Switch tab → Paste → Configure → Download
+**After:** Find job → Click extension → Auto-filled → Download
+
+**Estimated time saved:** ~50% per application
 
 ---
 
@@ -189,6 +254,22 @@ Strands-agent/
 │       ├── cover_letter_service.py  # Cover letter jobs
 │       └── log_handler.py           # Real-time log streaming
 │
+├── extension/                       # Chrome MV3 Extension
+│   ├── manifest.json                # Extension configuration
+│   ├── popup/
+│   │   ├── popup.html               # Side panel UI
+│   │   ├── popup.css                # Brutalist theme styling
+│   │   └── popup.js                 # Logic, polling, downloads
+│   ├── background/
+│   │   └── service-worker.js        # API communication
+│   ├── content/
+│   │   ├── linkedin-scraper.js      # LinkedIn job extraction
+│   │   └── indeed-scraper.js        # Indeed job extraction
+│   ├── icons/                       # Extension icons (16px, 48px, 128px)
+│   ├── README.md                    # Full extension documentation
+│   ├── INSTALL.md                   # Installation guide
+│   └── HOW_TO_LOAD.md               # Visual step-by-step guide
+│
 ├── frontend/                        # Web UI (vanilla JS + Tailwind CSS)
 │   ├── index.html                   # Main page
 │   ├── app.js                       # Application logic
@@ -213,6 +294,7 @@ Strands-agent/
 ├── docker-compose.yml               # Docker Compose config
 ├── requirements.txt                 # Python dependencies
 ├── resume_tailor.ipynb              # Jupyter notebook interface (advanced)
+├── EXTENSION_QUICKSTART.md          # Extension quick start guide
 └── README.md
 ```
 
@@ -305,6 +387,38 @@ The notebook provides direct access to the `tailor_resume_sections()` function f
 ---
 
 ## Troubleshooting
+
+### Chrome Extension Issues
+
+**Extension won't load in Chrome**:
+- Ensure all files exist in `extension/` folder
+- Check `manifest.json` is valid JSON (no syntax errors)
+- Chrome version must be 88+ for Manifest V3 support
+- See detailed instructions in [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md)
+
+**Cannot connect to backend**:
+- Backend must be running on `http://localhost:8000`
+- Verify by visiting http://localhost:8000 in browser
+- Check CORS is configured: `backend/config.py` should include `"chrome-extension://*"` in `ALLOWED_ORIGINS`
+- Restart backend after CORS changes
+
+**Auto-scraping doesn't work on LinkedIn/Indeed**:
+- Refresh the job posting page after installing extension
+- Content scripts only run after page loads
+- Check browser console (F12) for errors
+- Fallback: Manually paste job description into textarea
+
+**Downloads not working**:
+- Check job completed successfully (100% progress)
+- Verify files exist in `data/tailored_resumes/` directory
+- Chrome download permissions must be enabled
+- Alternative: Click "View Full Results & History" link to download from web app
+
+**Side panel stays blank**:
+- Right-click extension icon → "Inspect" to open DevTools
+- Check Console tab for JavaScript errors
+- Verify backend API is responding: http://localhost:8000/api/health
+- Try reloading extension: chrome://extensions/ → Find "Resume Tailor" → Click reload icon
 
 ### `pdflatex not found` (Local installations only)
 
