@@ -125,3 +125,10 @@ async function checkJobStatus(jobId) {
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Resume Tailor Extension installed');
 });
+
+/**
+ * Handle extension icon click - open side panel
+ */
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
