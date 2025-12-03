@@ -378,24 +378,26 @@ function showResults(result) {
     return;
   }
 
-  // Extract filename from path
+  // Extract filename from path and get result_id (filename without extension)
   const texFilename = result.tex_path.split('\\').pop().split('/').pop();
-  const pdfFilename = result.pdf_path ? result.pdf_path.split('\\').pop().split('/').pop() : null;
+  const resultId = texFilename.replace('.tex', '');
 
-  const texUrl = `http://localhost:8000/data/tailored_resumes/${texFilename}`;
-  const pdfUrl = pdfFilename ? `http://localhost:8000/data/tailored_resumes/${pdfFilename}` : null;
+  // Use the correct API endpoints
+  const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
+  const pdfUrl = result.pdf_path ? `http://localhost:8000/api/results/${resultId}/pdf` : null;
 
   console.log('Download URLs:', { texUrl, pdfUrl });
+  console.log('Result ID:', resultId);
 
   // Set download attributes for .tex
   elements.downloadTexBtn.setAttribute('href', texUrl);
-  elements.downloadTexBtn.setAttribute('download', texFilename);
+  elements.downloadTexBtn.setAttribute('download', `${resultId}.tex`);
   elements.downloadTexBtn.setAttribute('target', '_blank');
 
   // Set download attributes for .pdf if available
   if (pdfUrl) {
     elements.downloadPdfBtn.setAttribute('href', pdfUrl);
-    elements.downloadPdfBtn.setAttribute('download', pdfFilename);
+    elements.downloadPdfBtn.setAttribute('download', `${resultId}.pdf`);
     elements.downloadPdfBtn.setAttribute('target', '_blank');
     elements.downloadPdfBtn.style.display = '';
   } else {
