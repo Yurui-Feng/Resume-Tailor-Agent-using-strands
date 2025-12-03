@@ -367,32 +367,42 @@ function appendLogs(logs) {
  * Show results
  */
 function showResults(result) {
+  console.log('showResults called with:', result);
+
   elements.resultCompany.textContent = result.company || '-';
   elements.resultPosition.textContent = result.position || '-';
 
   // Set download links
   const resultId = result.id || result.result_id;
-  if (resultId) {
-    const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
-    const pdfUrl = `http://localhost:8000/api/results/${resultId}/pdf`;
+  console.log('Result ID:', resultId);
 
-    // Sanitize filename
-    const sanitize = (str) => str.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-    const company = sanitize(result.company || 'Resume');
-    const position = sanitize(result.position || 'Tailored');
-
-    // Remove onclick handlers, just use href directly
-    elements.downloadTexBtn.href = texUrl;
-    elements.downloadPdfBtn.href = pdfUrl;
-    elements.downloadTexBtn.target = '_blank';
-    elements.downloadPdfBtn.target = '_blank';
-    elements.downloadTexBtn.download = `${company}_${position}.tex`;
-    elements.downloadPdfBtn.download = `${company}_${position}.pdf`;
-
-    // Remove any existing onclick
-    elements.downloadTexBtn.onclick = null;
-    elements.downloadPdfBtn.onclick = null;
+  if (!resultId) {
+    console.error('No result ID found in result object');
+    return;
   }
+
+  const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
+  const pdfUrl = `http://localhost:8000/api/results/${resultId}/pdf`;
+
+  // Sanitize filename
+  const sanitize = (str) => str.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+  const company = sanitize(result.company || 'Resume');
+  const position = sanitize(result.position || 'Tailored');
+
+  console.log('Setting download URLs:', { texUrl, pdfUrl });
+  console.log('Filenames:', { tex: `${company}_${position}.tex`, pdf: `${company}_${position}.pdf` });
+
+  // Set download attributes
+  elements.downloadTexBtn.setAttribute('href', texUrl);
+  elements.downloadPdfBtn.setAttribute('href', pdfUrl);
+  elements.downloadTexBtn.setAttribute('target', '_blank');
+  elements.downloadPdfBtn.setAttribute('target', '_blank');
+  elements.downloadTexBtn.setAttribute('download', `${company}_${position}.tex`);
+  elements.downloadPdfBtn.setAttribute('download', `${company}_${position}.pdf`);
+
+  console.log('Download button attributes set');
+  console.log('TEX button:', elements.downloadTexBtn.outerHTML);
+  console.log('PDF button:', elements.downloadPdfBtn.outerHTML);
 
   showView('resultsView');
 }
