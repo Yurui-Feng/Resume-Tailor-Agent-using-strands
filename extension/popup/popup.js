@@ -383,8 +383,22 @@ function showResults(result) {
   // Set download links
   const resultId = result.id || result.result_id;
   if (resultId) {
-    elements.downloadTexBtn.href = `http://localhost:8000/api/results/${resultId}/tex`;
-    elements.downloadPdfBtn.href = `http://localhost:8000/api/results/${resultId}/pdf`;
+    const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
+    const pdfUrl = `http://localhost:8000/api/results/${resultId}/pdf`;
+
+    elements.downloadTexBtn.href = texUrl;
+    elements.downloadPdfBtn.href = pdfUrl;
+
+    // Add click handlers for download
+    elements.downloadTexBtn.onclick = (e) => {
+      e.preventDefault();
+      chrome.downloads.download({ url: texUrl, filename: `${result.company}_${result.position}.tex` });
+    };
+
+    elements.downloadPdfBtn.onclick = (e) => {
+      e.preventDefault();
+      chrome.downloads.download({ url: pdfUrl, filename: `${result.company}_${result.position}.pdf` });
+    };
   }
 
   showView('resultsView');
