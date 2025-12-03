@@ -385,38 +385,17 @@ function showResults(result) {
     elements.downloadPdfBtn.href = pdfUrl;
 
     // Add click handlers for download
+    // Use window.open approach which works better in side panel
     elements.downloadTexBtn.onclick = (e) => {
       e.preventDefault();
       console.log('Downloading .tex from:', texUrl);
-      chrome.downloads.download({
-        url: texUrl,
-        filename: `${company}_${position}.tex`,
-        saveAs: false
-      }, (downloadId) => {
-        if (chrome.runtime.lastError) {
-          console.error('Download error:', chrome.runtime.lastError);
-          alert('Download failed: ' + chrome.runtime.lastError.message);
-        } else {
-          console.log('Download started:', downloadId);
-        }
-      });
+      window.open(texUrl, '_blank');
     };
 
     elements.downloadPdfBtn.onclick = (e) => {
       e.preventDefault();
       console.log('Downloading .pdf from:', pdfUrl);
-      chrome.downloads.download({
-        url: pdfUrl,
-        filename: `${company}_${position}.pdf`,
-        saveAs: false
-      }, (downloadId) => {
-        if (chrome.runtime.lastError) {
-          console.error('Download error:', chrome.runtime.lastError);
-          alert('Download failed: ' + chrome.runtime.lastError.message);
-        } else {
-          console.log('Download started:', downloadId);
-        }
-      });
+      window.open(pdfUrl, '_blank');
     };
   }
 
