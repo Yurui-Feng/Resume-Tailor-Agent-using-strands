@@ -8,10 +8,12 @@ WORKDIR /app
 # - texlive-latex-base: For PDF compilation
 # - texlive-fonts-recommended: Additional fonts
 # - texlive-latex-extra: Extra LaTeX packages
+# - texlive-fonts-extra: Additional font packages (includes fontawesome)
 RUN apt-get update && apt-get install -y \
     texlive-latex-base \
     texlive-fonts-recommended \
     texlive-latex-extra \
+    texlive-fonts-extra \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

@@ -1111,7 +1111,7 @@ def tailor_resume_sections(
         pdf_result = compile_pdf(output_path, cleanup=True)
 
         if pdf_result.startswith("ERROR"):
-            logger.info(pdf_result)
+            logger.error(pdf_result)
             pdf_path = None
         else:
             pdf_path = pdf_result

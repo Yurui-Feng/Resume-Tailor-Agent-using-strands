@@ -116,8 +116,8 @@ function setupUrlMonitoring() {
     }
   });
 
-  // Also monitor hash changes (LinkedIn uses hash routing)
-  const [tab] = chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+  // Initialize with current tab's job ID
+  chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
     if (tabs[0]) {
       lastJobId = getJobIdFromUrl(tabs[0].url);
     }
