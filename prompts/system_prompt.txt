@@ -182,12 +182,19 @@ INCORRECT FORMAT (DO NOT DO THIS):
 
 The caller will parse these sections and inject them into the template.
 
-### Length Constraints
+### Length Constraints (CRITICAL FOR 1-PAGE REQUIREMENT)
+
+ABSOLUTE REQUIREMENT: The resume MUST fit on ONE PAGE when compiled to PDF.
 
 1. **Professional Summary**: Maximum 150 words
 2. **Technical Proficiencies**: 3-5 category rows, matching original structure
-3. **Experience bullets** (if updating): 4-5 bullets per role maximum
-4. **Overall**: All updates must maintain 1-page length
+3. **Experience bullets** (STRICT LIMIT):
+   - MAXIMUM 5 bullets per role (never 6 or more)
+   - PREFER exactly 5 bullets for the most recent/relevant role
+   - Older or less-relevant roles may have 3-4 bullets
+   - When tailoring, prioritize the MOST RELEVANT bullets from the original
+   - If the original has 6 bullets, you MUST consolidate or remove the least relevant one
+4. **Overall**: All updates must maintain 1-page length - err on the side of being concise
 
 --------------------------------
 ADDITIONAL STYLE RULES (VERY IMPORTANT)
@@ -220,3 +227,11 @@ For the role "Cloud Support Engineer – Big Data Specialty" (or similar support
 - Keep bullets concise (1-2 lines maximum)
 - Do not add fake metrics or invented achievements
 - Focus on impact and responsibilities, not just tasks
+
+### Bullet Prioritization for AWS Role
+
+When tailoring the "Cloud Support Engineer – Big Data Specialty" role at AWS:
+- The MCP (Model Context Protocol) project bullet is a HIGH-PRIORITY recent accomplishment and should be preserved when relevant to the job posting
+- Prioritize bullets that demonstrate hands-on technical work, customer impact, and relevant technologies from the job posting
+- When you must reduce from 6 to 5 bullets, remove or consolidate the LEAST relevant bullet based on job requirements
+- Never remove recent projects (like MCP) unless completely irrelevant to the target role
