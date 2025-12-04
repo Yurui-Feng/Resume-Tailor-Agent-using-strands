@@ -31,7 +31,13 @@
                     placeholder="Paste job posting here or let extension auto-fill from LinkedIn/Indeed..."
                     minlength="50"
                 ></textarea>
-                <span id="charCount" class="char-count">0 characters (min 50)</span>
+                <div class="form-actions-bar">
+                    <span id="charCount" class="char-count">0 characters (min 50)</span>
+                    <button id="scrapeBtn" class="brutalist-button brutalist-button--ghost scrape-button hidden"
+                            title="Re-scrape job posting from current page">
+                        Re-scrape Job Posting
+                    </button>
+                </div>
             </div>
 
             <!-- Resume Dropdown -->
