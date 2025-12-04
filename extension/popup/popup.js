@@ -13,6 +13,7 @@ const elements = {
 
   // Form elements
   scrapedNotice: document.getElementById('scrapedNotice'),
+  scrapeBtn: document.getElementById('scrapeBtn'),
   jobPosting: document.getElementById('jobPosting'),
   charCount: document.getElementById('charCount'),
   resumeSelect: document.getElementById('resumeSelect'),
@@ -64,11 +65,63 @@ async function init() {
   // Check current tab for auto-scraping
   await checkForAutoScrape();
 
+  // Check if scraping is available on current page
+  await checkScrapingAvailable();
+
   // Load saved preferences
   await loadPreferences();
 
   // Setup event listeners
   setupEventListeners();
+
+  // Setup URL change monitoring for automatic re-scraping
+  setupUrlMonitoring();
+}
+
+/**
+ * Setup URL change monitoring to auto-scrape when user navigates to new job
+ */
+function setupUrlMonitoring() {
+  let lastJobId = null;
+
+  // Extract job ID from LinkedIn URL
+  function getJobIdFromUrl(url) {
+    if (!url) return null;
+    const match = url.match(/currentJobId=(\d+)/);
+    return match ? match[1] : null;
+  }
+
+  // Listen for URL changes in the current tab
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    // Only process URL changes for the active tab
+    if (changeInfo.url) {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      // Check if this is the active tab and we're viewing the popup
+      if (activeTab && tabId === activeTab.id) {
+        const newJobId = getJobIdFromUrl(changeInfo.url);
+
+        // If job ID changed and we're on a job page, auto-scrape
+        if (newJobId && newJobId !== lastJobId) {
+          lastJobId = newJobId;
+
+          // Only auto-scrape if we're currently in formView
+          if (!elements.formView.classList.contains('hidden')) {
+            console.log('New job detected, auto-scraping...', newJobId);
+            await checkForAutoScrape();
+            await checkScrapingAvailable();
+          }
+        }
+      }
+    }
+  });
+
+  // Also monitor hash changes (LinkedIn uses hash routing)
+  const [tab] = chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+    if (tabs[0]) {
+      lastJobId = getJobIdFromUrl(tabs[0].url);
+    }
+  });
 }
 
 /**
@@ -82,6 +135,9 @@ function setupEventListeners() {
   elements.jobPosting.addEventListener('input', validateForm);
   elements.resumeSelect.addEventListener('change', validateForm);
 
+  // Manual scrape button
+  elements.scrapeBtn.addEventListener('click', handleScrapeClick);
+
   // Submit button
   elements.submitBtn.addEventListener('click', handleSubmit);
 
@@ -89,9 +145,12 @@ function setupEventListeners() {
   elements.cancelBtn.addEventListener('click', handleCancel);
 
   // New job button
-  elements.newJobBtn.addEventListener('click', () => {
+  elements.newJobBtn.addEventListener('click', async () => {
     resetForm();
     showView('formView');
+    // Auto-scrape the current page when starting a new job
+    await checkForAutoScrape();
+    await checkScrapingAvailable();
   });
 
   // Retry button
@@ -142,44 +201,146 @@ async function loadResumes() {
 }
 
 /**
- * Check if current tab has a job posting we can scrape
+ * Core scraping function (reusable for auto and manual scraping)
+ * Returns { jobDescription: string } or null
  */
-async function checkForAutoScrape() {
+async function scrapeCurrentPage() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (!tab || !tab.url) return;
+    if (!tab || !tab.url) return null;
 
     const url = tab.url;
     const isLinkedIn = url.includes('linkedin.com/jobs');
     const isIndeed = url.includes('indeed.com/viewjob');
 
-    if (!isLinkedIn && !isIndeed) return;
+    if (!isLinkedIn && !isIndeed) return null;
 
-    // Request scraped content from content script
-    chrome.tabs.sendMessage(tab.id, { type: 'GET_JOB_DESCRIPTION' }, response => {
-      if (chrome.runtime.lastError) {
-        console.log('Content script not ready:', chrome.runtime.lastError.message);
-        return;
-      }
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Content script not responding'));
+      }, 5000);
 
-      if (response && response.jobDescription) {
-        elements.jobPosting.value = response.jobDescription;
-        updateCharCount();
-        validateForm();
-        showScrapedNotice();
-      }
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: 'GET_JOB_DESCRIPTION' },
+        response => {
+          clearTimeout(timeout);
+
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          resolve(response);
+        }
+      );
     });
+  } catch (error) {
+    console.log('Scrape failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if current tab has a job posting we can scrape (auto-scrape on init)
+ */
+async function checkForAutoScrape() {
+  try {
+    const response = await scrapeCurrentPage();
+
+    if (response && response.jobDescription) {
+      elements.jobPosting.value = response.jobDescription;
+      updateCharCount();
+      validateForm();
+      showScrapedNotice();
+    }
   } catch (error) {
     console.log('Auto-scrape check failed:', error);
   }
 }
 
 /**
- * Show scraped notice
+ * Check if scraping is available on current page and show/hide button
  */
-function showScrapedNotice() {
+async function checkScrapingAvailable() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab || !tab.url) {
+      elements.scrapeBtn.classList.add('hidden');
+      return false;
+    }
+
+    const isLinkedIn = tab.url.includes('linkedin.com/jobs');
+    const isIndeed = tab.url.includes('indeed.com/viewjob');
+
+    if (!isLinkedIn && !isIndeed) {
+      elements.scrapeBtn.classList.add('hidden');
+      return false;
+    }
+
+    elements.scrapeBtn.classList.remove('hidden');
+    elements.scrapeBtn.disabled = false;
+    return true;
+  } catch (error) {
+    console.log('Scraping availability check failed:', error);
+    elements.scrapeBtn.classList.add('hidden');
+    return false;
+  }
+}
+
+/**
+ * Handle manual scrape button click
+ */
+async function handleScrapeClick() {
+  if (elements.scrapeBtn.disabled) return;
+
+  const previousContent = elements.jobPosting.value;
+
+  try {
+    elements.scrapeBtn.disabled = true;
+    elements.scrapeBtn.textContent = 'Scraping...';
+
+    const response = await scrapeCurrentPage();
+
+    if (response && response.jobDescription) {
+      elements.jobPosting.value = response.jobDescription;
+      updateCharCount();
+      validateForm();
+      showScrapedNotice('Job posting updated - page re-scraped', 'success');
+    } else {
+      elements.jobPosting.value = previousContent;
+      showScrapedNotice('No job posting found on this page', 'error');
+    }
+  } catch (error) {
+    console.error('Manual scrape error:', error);
+    elements.jobPosting.value = previousContent;
+    showScrapedNotice(error.message || 'Failed to scrape job posting', 'error');
+  } finally {
+    elements.scrapeBtn.textContent = 'Re-scrape Job Posting';
+    elements.scrapeBtn.disabled = false;
+  }
+}
+
+/**
+ * Show notification for scrape result (auto-scrape or manual)
+ * @param {string} message - Notification message
+ * @param {string} type - 'success' or 'error'
+ */
+function showScrapedNotice(message = 'Job posting detected and auto-filled', type = 'success') {
+  const classes = ['brutalist-chip'];
+
+  if (type === 'success') {
+    classes.push('brutalist-chip--success');
+  } else if (type === 'error') {
+    classes.push('brutalist-chip--error');
+  }
+
+  elements.scrapedNotice.className = classes.join(' ');
+  elements.scrapedNotice.textContent = message;
   elements.scrapedNotice.classList.remove('hidden');
+
   setTimeout(() => {
     elements.scrapedNotice.classList.add('hidden');
   }, 5000);
