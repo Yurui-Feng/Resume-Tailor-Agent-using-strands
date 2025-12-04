@@ -115,7 +115,9 @@ The Chrome extension eliminates the workflow bottleneck of switching between job
 
 ### Features
 - **Side Panel Interface** – Stays open while you browse job postings
-- **Auto-Scraping** – Automatically fills job descriptions from LinkedIn and Indeed
+- **Automatic Job Monitoring** – Detects when you navigate to a new job posting and auto-scrapes (NEW!)
+- **Manual Re-scraping** – Button to refresh job posting content on demand (NEW!)
+- **Initial Auto-Scraping** – Automatically fills job descriptions from LinkedIn and Indeed on open
 - **In-Panel Progress** – Watch real-time progress with streaming AI output
 - **Direct Downloads** – Download .tex and .pdf files without leaving the job page
 - **Persistent Preferences** – Remembers your last-used resume and settings
@@ -128,21 +130,35 @@ The Chrome extension eliminates the workflow bottleneck of switching between job
 ### Basic Workflow
 1. Navigate to a job posting on LinkedIn or Indeed
 2. Click the Resume Tailor extension icon in Chrome toolbar
-3. Job description auto-fills (or paste manually for other sites)
-4. Select your resume from the dropdown
-5. Configure options (include experience, generate PDF)
-6. Click "Tailor Resume"
-7. Watch progress bar and streaming AI logs
-8. Download .tex and .pdf files when complete
+3. Job description auto-fills instantly
+4. **Browse to another job** → Automatically scrapes the new posting!
+5. Select your resume from the dropdown
+6. Configure options (include experience, generate PDF)
+7. Click "Tailor Resume"
+8. Watch progress bar and streaming AI logs
+9. Download .tex and .pdf files when complete
+10. Click "Tailor Another Resume" → Auto-scrapes current page again
+
+### Smart Scraping Behavior
+- **On Extension Open** – Automatically scrapes current LinkedIn/Indeed job
+- **On Navigation** – Detects when you click a different job and auto-scrapes
+- **Manual Button** – "Re-scrape Job Posting" button for manual refresh
+- **After Completion** – "Tailor Another Resume" auto-scrapes the current page
 
 ### Installation
 See [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md) for detailed visual instructions.
 
 ### Time Savings
-**Before:** Find job → Copy text → Switch tab → Paste → Configure → Download
-**After:** Find job → Click extension → Auto-filled → Download
+**Before:** Find job → Copy text → Switch tab → Paste → Configure → Download → Repeat for next job
+**After (NEW!):** Find job → Click extension → Auto-filled → Download → **Click next job → Auto-scrapes!**
 
-**Estimated time saved:** ~50% per application
+**Workflow improvements:**
+- **No manual scraping** – Navigate between jobs freely, extension keeps up
+- **No tab switching** – Side panel stays open while browsing
+- **No copy/paste** – Automatic extraction from LinkedIn/Indeed
+- **Batch processing** – Tailor multiple resumes without closing the extension
+
+**Estimated time saved:** ~60% per application, ~80% when processing multiple jobs
 
 ---
 
@@ -406,7 +422,14 @@ The notebook provides direct access to the `tailor_resume_sections()` function f
 - Refresh the job posting page after installing extension
 - Content scripts only run after page loads
 - Check browser console (F12) for errors
+- Try clicking the "Re-scrape Job Posting" button manually
 - Fallback: Manually paste job description into textarea
+
+**Extension doesn't detect new jobs when navigating**:
+- Extension monitors URL changes for `currentJobId` parameter
+- Works best when clicking jobs in LinkedIn's job list sidebar
+- Manual button available as backup: "Re-scrape Job Posting"
+- Check console (F12) for "New job detected, auto-scraping..." messages
 
 **Downloads not working**:
 - Check job completed successfully (100% progress)
