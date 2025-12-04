@@ -243,6 +243,56 @@ body.brutalist-body {
     color: #2e7d32;
 }
 
+.brutalist-chip--error {
+    background: #ffebee;
+    border-color: var(--brutal-crimson);
+    color: var(--brutal-crimson);
+}
+
+/* Form Actions Bar */
+.form-actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 8px;
+}
+
+.form-actions-bar .char-count {
+    margin-top: 0;
+}
+
+/* Scrape Button */
+.scrape-button {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.scrape-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.scrape-button:not(:disabled):hover {
+    border-color: var(--brutal-accent);
+    background: var(--brutal-bg-veil);
+}
+
+/* Responsive */
+@media (max-width: 450px) {
+    .form-actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .scrape-button {
+        flex: unset;
+    }
+}
+
 /* Progress Bar */
 .progress-container {
     margin-bottom: 16px;
