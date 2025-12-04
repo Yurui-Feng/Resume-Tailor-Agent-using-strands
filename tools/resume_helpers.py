@@ -801,6 +801,9 @@ def render_cover_letter_latex(
 
     today = datetime.now().strftime("%B %d, %Y")
 
+    # Handle subject line separately to avoid f-string backslash issues
+    subject_section = f"\\\\\n{subject_line}" if subject_line else ""
+
     return rf"""% Auto-generated cover letter
 \documentclass[11pt]{{article}}
 \usepackage[margin=1in]{{geometry}}
@@ -818,7 +821,7 @@ def render_cover_letter_latex(
 {header_block}
 
 \vspace{{0.75\baselineskip}}
-\textbf{{{today}}}{f"\\\\\n{subject_line}" if subject_line else ""}
+\textbf{{{today}}}{subject_section}
 
 \vspace{{0.85\baselineskip}}
 
