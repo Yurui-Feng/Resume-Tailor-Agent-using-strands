@@ -111,6 +111,25 @@ function setupEventListeners() {
   elements.includeExperience.addEventListener('change', savePreferences);
   elements.renderPdf.addEventListener('change', savePreferences);
   elements.resumeSelect.addEventListener('change', savePreferences);
+
+  // Listen for tab updates (when user navigates while side panel is open)
+  chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
+    // Only care about URL changes and when page is complete
+    if (changeInfo.status === 'complete' && tab.active) {
+      const scrapingAvailable = await checkScrapingAvailable();
+
+      // Auto-scrape if we're on a job posting page (simplified auto-scraping)
+      if (scrapingAvailable && changeInfo.url) {
+        console.log('URL changed to job posting page, auto-scraping...');
+        await autoScrapeJob();
+      }
+    }
+  });
+
+  // Listen for tab activation (when user switches tabs while side panel is open)
+  chrome.tabs.onActivated.addListener(async () => {
+    await checkScrapingAvailable();
+  });
 }
 
 /**
@@ -277,6 +296,41 @@ async function checkScrapingAvailable() {
     console.log('Scraping availability check failed:', error);
     elements.scrapeBtn.classList.add('hidden');
     return false;
+  }
+}
+
+/**
+ * Auto-scrape when navigating to a new job (simplified auto-scraping)
+ */
+async function autoScrapeJob() {
+  try {
+    console.log('Auto-scraping job posting...');
+
+    const response = await scrapeCurrentPage();
+
+    if (response && response.jobDescription) {
+      elements.jobPosting.value = response.jobDescription;
+
+      // Populate company and title if scraped
+      if (response.company) {
+        elements.companyName.value = response.company;
+      }
+      if (response.title) {
+        elements.desiredTitle.value = response.title;
+      }
+
+      updateCharCount();
+      validateForm();
+      showScrapedNotice('New job detected - auto-filled', 'success');
+
+      // Update scrape button text to indicate re-scrape
+      elements.scrapeBtn.textContent = 'Re-scrape Job Posting';
+    } else {
+      console.log('Auto-scrape found no content');
+    }
+  } catch (error) {
+    console.error('Auto-scrape error:', error);
+    // Don't show error notification for auto-scrape failures - user can manually scrape
   }
 }
 
