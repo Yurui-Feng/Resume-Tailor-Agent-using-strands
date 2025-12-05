@@ -64,9 +64,6 @@ async function init() {
     startPolling();
   }
 
-  // Check current tab for auto-scraping
-  await checkForAutoScrape();
-
   // Check if scraping is available on current page
   await checkScrapingAvailable();
 
@@ -75,117 +72,6 @@ async function init() {
 
   // Setup event listeners
   setupEventListeners();
-
-  // Setup URL change monitoring for automatic re-scraping
-  setupUrlMonitoring();
-}
-
-/**
- * Setup URL change monitoring to auto-scrape when user navigates to new job
- */
-function setupUrlMonitoring() {
-  let lastJobId = null;
-  let scrapeTimeout = null;
-  let isScrapePending = false;
-
-  // Extract job ID from LinkedIn URL
-  function getJobIdFromUrl(url) {
-    if (!url) return null;
-    const match = url.match(/currentJobId=(\d+)/);
-    return match ? match[1] : null;
-  }
-
-  // Handle job ID change and trigger auto-scrape
-  async function handleJobIdChange(newJobId) {
-    if (newJobId && newJobId !== lastJobId) {
-      lastJobId = newJobId;
-
-      // Only auto-scrape if we're currently in formView
-      if (!elements.formView.classList.contains('hidden')) {
-        // Clear any pending scrape
-        if (scrapeTimeout) {
-          clearTimeout(scrapeTimeout);
-        }
-
-        // Prevent duplicate scrapes if one is already pending
-        if (isScrapePending) {
-          return;
-        }
-
-        isScrapePending = true;
-
-        // Wait 1000ms for LinkedIn SPA to fully load content
-        scrapeTimeout = setTimeout(async () => {
-          try {
-            console.log('Auto-scraping job:', newJobId);
-            await checkForAutoScrape();
-            await checkScrapingAvailable();
-          } catch (error) {
-            console.error('Auto-scrape failed:', error);
-          } finally {
-            isScrapePending = false;
-          }
-        }, 1000);
-      }
-    }
-  }
-
-  // Listen for URL changes in the current tab
-  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-    // Only process URL changes for the active tab
-    if (changeInfo.url) {
-      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      // Check if this is the active tab and we're viewing the popup
-      if (activeTab && tabId === activeTab.id) {
-        const newJobId = getJobIdFromUrl(changeInfo.url);
-
-        // Always update scrape button visibility when URL changes
-        await checkScrapingAvailable();
-
-        // Auto-scrape if job ID changed
-        await handleJobIdChange(newJobId);
-      }
-    }
-  });
-
-  // Listen for tab activation (switching tabs or opening new tabs)
-  chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    const tab = await chrome.tabs.get(activeInfo.tabId);
-
-    // Always update scrape button visibility when tab changes
-    await checkScrapingAvailable();
-
-    // Auto-scrape if there's a job ID
-    const newJobId = getJobIdFromUrl(tab.url);
-    await handleJobIdChange(newJobId);
-  });
-
-  // Initialize with current tab's job ID and trigger initial check
-  chrome.tabs.query({ active: true, currentWindow: true }).then(async tabs => {
-    if (tabs[0]) {
-      const currentJobId = getJobIdFromUrl(tabs[0].url);
-      lastJobId = currentJobId;
-
-      // Always update scrape button visibility on initialization
-      await checkScrapingAvailable();
-
-      // If we're already on a job page when popup opens, trigger auto-scrape
-      if (currentJobId && !elements.formView.classList.contains('hidden')) {
-        isScrapePending = true;
-        scrapeTimeout = setTimeout(async () => {
-          try {
-            console.log('Initial auto-scrape on popup load:', currentJobId);
-            await checkForAutoScrape();
-          } catch (error) {
-            console.error('Initial auto-scrape failed:', error);
-          } finally {
-            isScrapePending = false;
-          }
-        }, 1000);
-      }
-    }
-  });
 }
 
 /**
@@ -212,8 +98,6 @@ function setupEventListeners() {
   elements.newJobBtn.addEventListener('click', async () => {
     resetForm();
     showView('formView');
-    // Auto-scrape the current page when starting a new job
-    await checkForAutoScrape();
     await checkScrapingAvailable();
   });
 
@@ -362,33 +246,6 @@ async function scrapeCurrentPage() {
 }
 
 /**
- * Check if current tab has a job posting we can scrape (auto-scrape on init)
- */
-async function checkForAutoScrape() {
-  try {
-    const response = await scrapeCurrentPage();
-
-    if (response && response.jobDescription) {
-      elements.jobPosting.value = response.jobDescription;
-
-      // Populate company and title if scraped
-      if (response.company) {
-        elements.companyName.value = response.company;
-      }
-      if (response.title) {
-        elements.desiredTitle.value = response.title;
-      }
-
-      updateCharCount();
-      validateForm();
-      showScrapedNotice();
-    }
-  } catch (error) {
-    console.log('Auto-scrape check failed:', error);
-  }
-}
-
-/**
  * Check if scraping is available on current page and show/hide button
  */
 async function checkScrapingAvailable() {
@@ -439,6 +296,15 @@ async function handleScrapeClick() {
 
     if (response && response.jobDescription) {
       elements.jobPosting.value = response.jobDescription;
+
+      // Populate company and title if scraped
+      if (response.company) {
+        elements.companyName.value = response.company;
+      }
+      if (response.title) {
+        elements.desiredTitle.value = response.title;
+      }
+
       updateCharCount();
       validateForm();
       showScrapedNotice('Job posting updated - page re-scraped', 'success');
