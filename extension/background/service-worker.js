@@ -131,6 +131,10 @@ async function checkJobStatus(jobId) {
  */
 async function injectContentScript(tabId, scriptFile) {
   try {
+    if (!chrome.scripting) {
+      throw new Error('chrome.scripting API is not available');
+    }
+
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
       files: [scriptFile]
@@ -138,6 +142,7 @@ async function injectContentScript(tabId, scriptFile) {
     console.log('Content script injected:', scriptFile);
   } catch (error) {
     console.error('Failed to inject content script:', error);
+    console.error('Tab ID:', tabId, 'Script file:', scriptFile);
     throw error;
   }
 }

@@ -395,10 +395,15 @@ async function checkScrapingAvailable() {
       return false;
     }
 
-    const isLinkedIn = tab.url.includes('linkedin.com/jobs');
-    const isIndeed = tab.url.includes('indeed.com/viewjob');
+    const url = tab.url;
 
-    if (!isLinkedIn && !isIndeed) {
+    // LinkedIn: Must have /jobs/ AND a job ID parameter (currentJobId=)
+    const isLinkedInJob = url.includes('linkedin.com/jobs') && url.includes('currentJobId=');
+
+    // Indeed: Must have /viewjob in the path
+    const isIndeedJob = url.includes('indeed.com/viewjob');
+
+    if (!isLinkedInJob && !isIndeedJob) {
       elements.scrapeBtn.classList.add('hidden');
       return false;
     }
