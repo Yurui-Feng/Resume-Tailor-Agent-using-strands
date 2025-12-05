@@ -81,7 +81,21 @@ docker-compose down
 
 # Rebuild after code changes
 docker-compose up --build -d
+
+# Test LaTeX installation in container
+docker exec resume-tailor pdflatex --version
 ```
+
+**What's Included in Docker:**
+- Python 3.11 runtime
+- All Python dependencies from `requirements.txt`
+- Complete LaTeX distribution:
+  - `texlive-latex-base` - Core LaTeX
+  - `texlive-fonts-recommended` - Standard fonts
+  - `texlive-latex-extra` - Extra packages
+  - `texlive-fonts-extra` - **FontAwesome icons** and additional fonts
+- Uvicorn web server
+- Health check endpoint monitoring
 
 ### Option 3: Local Installation
 
@@ -115,9 +129,11 @@ The Chrome extension eliminates the workflow bottleneck of switching between job
 
 ### Features
 - **Side Panel Interface** – Stays open while you browse job postings
-- **Automatic Job Monitoring** – Detects when you navigate to a new job posting and auto-scrapes (NEW!)
+- **Company & Title Fields** – Optional fields for company name and job position (auto-filled from scraper) (NEW!)
+- **Automatic Job Monitoring** – Detects when you navigate to a new job posting and auto-scrapes with 1s delay (NEW!)
 - **Manual Re-scraping** – Button to refresh job posting content on demand (NEW!)
 - **Initial Auto-Scraping** – Automatically fills job descriptions from LinkedIn and Indeed on open
+- **Smart Metadata Extraction** – Extracts company name and job title from job postings
 - **In-Panel Progress** – Watch real-time progress with streaming AI output
 - **Direct Downloads** – Download .tex and .pdf files without leaving the job page
 - **Persistent Preferences** – Remembers your last-used resume and settings
@@ -130,35 +146,40 @@ The Chrome extension eliminates the workflow bottleneck of switching between job
 ### Basic Workflow
 1. Navigate to a job posting on LinkedIn or Indeed
 2. Click the Resume Tailor extension icon in Chrome toolbar
-3. Job description auto-fills instantly
-4. **Browse to another job** → Automatically scrapes the new posting!
-5. Select your resume from the dropdown
-6. Configure options (include experience, generate PDF)
-7. Click "Tailor Resume"
-8. Watch progress bar and streaming AI logs
-9. Download .tex and .pdf files when complete
-10. Click "Tailor Another Resume" → Auto-scrapes current page again
+3. Job description, company name, and title auto-fill instantly
+4. **(Optional)** Manually edit company/title fields or leave empty for AI auto-detection
+5. **Browse to another job** → Automatically scrapes the new posting after 1 second!
+6. Select your resume from the dropdown
+7. Configure options (include experience, generate PDF)
+8. Click "Tailor Resume"
+9. Watch progress bar and streaming AI logs
+10. Download .tex and .pdf files when complete
+11. Click "Tailor Another Resume" → Auto-scrapes current page again
 
 ### Smart Scraping Behavior
-- **On Extension Open** – Automatically scrapes current LinkedIn/Indeed job
-- **On Navigation** – Detects when you click a different job and auto-scrapes
+- **On Extension Open** – Automatically scrapes current LinkedIn/Indeed job (description + company + title)
+- **On Navigation** – Detects when you click a different job, waits 1 second for page load, then auto-scrapes
 - **Manual Button** – "Re-scrape Job Posting" button for manual refresh
 - **After Completion** – "Tailor Another Resume" auto-scrapes the current page
+- **Debounced Scraping** – Rapid navigation only triggers one scrape (prevents duplicate requests)
+- **Metadata Extraction** – Company name and job title extracted from page structure
 
 ### Installation
 See [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md) for detailed visual instructions.
 
 ### Time Savings
-**Before:** Find job → Copy text → Switch tab → Paste → Configure → Download → Repeat for next job
-**After (NEW!):** Find job → Click extension → Auto-filled → Download → **Click next job → Auto-scrapes!**
+**Before:** Find job → Copy text → Switch tab → Paste → Manually type company/title → Configure → Download → Repeat
+**After (NEW!):** Find job → **Company, title & description auto-fill** → Download → **Click next job → Auto-scrapes!**
 
 **Workflow improvements:**
-- **No manual scraping** – Navigate between jobs freely, extension keeps up
+- **No manual data entry** – Company, title, and description extracted automatically
+- **No manual scraping** – Navigate between jobs freely, extension keeps up (with smart 1s delay)
 - **No tab switching** – Side panel stays open while browsing
 - **No copy/paste** – Automatic extraction from LinkedIn/Indeed
 - **Batch processing** – Tailor multiple resumes without closing the extension
+- **Accurate metadata** – Scraped company/title override AI extraction for precision
 
-**Estimated time saved:** ~60% per application, ~80% when processing multiple jobs
+**Estimated time saved:** ~60-70% per application, ~80-85% when processing multiple jobs
 
 ---
 
@@ -169,8 +190,8 @@ See [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md) for detailed visual ins
 - **LaTeX distribution** (only for local PDF compilation - Docker includes this):
   - Windows: [MiKTeX](https://miktex.org/download)
   - macOS: BasicTeX (`brew install --cask basictex`)
-  - Linux: `sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra`
-  - Docker: Included automatically
+  - Linux: `sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra texlive-fonts-extra`
+  - **Docker**: Includes complete LaTeX setup with FontAwesome and additional fonts automatically
 
 ---
 
@@ -419,17 +440,26 @@ The notebook provides direct access to the `tailor_resume_sections()` function f
 - Restart backend after CORS changes
 
 **Auto-scraping doesn't work on LinkedIn/Indeed**:
-- Refresh the job posting page after installing extension
-- Content scripts only run after page loads
-- Check browser console (F12) for errors
+- **After updating extension**: Reload extension (chrome://extensions/ → reload icon) AND refresh the LinkedIn page
+- Content scripts only inject after page loads
+- Check browser console (F12) for errors like "Could not establish connection. Receiving end does not exist."
+- This error means content script isn't loaded - reload extension and refresh page
 - Try clicking the "Re-scrape Job Posting" button manually
 - Fallback: Manually paste job description into textarea
 
+**Company/Title fields don't auto-fill**:
+- LinkedIn frequently changes their HTML class names (obfuscated classes)
+- Extension uses robust fallback selectors (`h1` for title, `a[href*="/company/"]` for company)
+- If scraped but not filled, check browser console for scraper response
+- You can manually type company/title - backend accepts both scraped and manual values
+- Empty fields → AI auto-extracts from job description (fallback behavior)
+
 **Extension doesn't detect new jobs when navigating**:
-- Extension monitors URL changes for `currentJobId` parameter
+- Extension monitors URL changes for `currentJobId` parameter with 1-second delay
 - Works best when clicking jobs in LinkedIn's job list sidebar
+- Debounce prevents rapid navigation from triggering multiple scrapes
 - Manual button available as backup: "Re-scrape Job Posting"
-- Check console (F12) for "New job detected, auto-scraping..." messages
+- Check console (F12) for "Auto-scraping job: <id>" messages after 1-second delay
 
 **Downloads not working**:
 - Check job completed successfully (100% progress)
@@ -467,7 +497,8 @@ sudo tlmgr install collection-latexrecommended collection-fontsrecommended \
 
 **Linux**:
 ```bash
-sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra
+sudo apt-get install texlive-latex-base texlive-fonts-recommended \
+  texlive-latex-extra texlive-fonts-extra
 ```
 
 **Alternative**: Set `render_pdf=False` in the UI and upload .tex files to [Overleaf](https://overleaf.com) for compilation.
