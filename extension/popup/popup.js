@@ -125,6 +125,11 @@ function setupUrlMonitoring() {
       // Check if this is the active tab and we're viewing the popup
       if (activeTab && tabId === activeTab.id) {
         const newJobId = getJobIdFromUrl(changeInfo.url);
+
+        // Always update scrape button visibility when URL changes
+        await checkScrapingAvailable();
+
+        // Auto-scrape if job ID changed
         await handleJobIdChange(newJobId);
       }
     }
@@ -133,6 +138,11 @@ function setupUrlMonitoring() {
   // Listen for tab activation (switching tabs or opening new tabs)
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const tab = await chrome.tabs.get(activeInfo.tabId);
+
+    // Always update scrape button visibility when tab changes
+    await checkScrapingAvailable();
+
+    // Auto-scrape if there's a job ID
     const newJobId = getJobIdFromUrl(tab.url);
     await handleJobIdChange(newJobId);
   });
@@ -143,12 +153,14 @@ function setupUrlMonitoring() {
       const currentJobId = getJobIdFromUrl(tabs[0].url);
       lastJobId = currentJobId;
 
+      // Always update scrape button visibility on initialization
+      await checkScrapingAvailable();
+
       // If we're already on a job page when popup opens, trigger auto-scrape
       if (currentJobId && !elements.formView.classList.contains('hidden')) {
         scrapeTimeout = setTimeout(async () => {
           console.log('Initial auto-scrape on popup load:', currentJobId);
           await checkForAutoScrape();
-          await checkScrapingAvailable();
         }, 1000);
       }
     }
