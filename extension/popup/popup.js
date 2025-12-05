@@ -86,6 +86,7 @@ async function init() {
 function setupUrlMonitoring() {
   let lastJobId = null;
   let scrapeTimeout = null;
+  let isScrapePending = false;
 
   // Extract job ID from LinkedIn URL
   function getJobIdFromUrl(url) {
@@ -106,11 +107,19 @@ function setupUrlMonitoring() {
           clearTimeout(scrapeTimeout);
         }
 
+        // Prevent duplicate scrapes if one is already pending
+        if (isScrapePending) {
+          return;
+        }
+
+        isScrapePending = true;
+
         // Wait 1000ms for LinkedIn SPA to fully load content
         scrapeTimeout = setTimeout(async () => {
           console.log('Auto-scraping job:', newJobId);
           await checkForAutoScrape();
           await checkScrapingAvailable();
+          isScrapePending = false;
         }, 1000);
       }
     }
