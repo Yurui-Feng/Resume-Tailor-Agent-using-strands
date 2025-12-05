@@ -86,18 +86,25 @@ async function scrapeLinkedInJob() {
       if (companyElement) break;
     }
 
+    // Extract title and company separately
+    const title = titleElement ? titleElement.innerText.trim() : null;
+    const company = companyElement ? companyElement.innerText.trim() : null;
+
     // Build full description with title and company
     let fullDescription = '';
 
-    if (titleElement && companyElement) {
-      const title = titleElement.innerText.trim();
-      const company = companyElement.innerText.trim();
+    if (title && company) {
       fullDescription = `${title} at ${company}\n\n`;
     }
 
     fullDescription += description;
 
-    return fullDescription;
+    // Return structured data instead of just string
+    return {
+      jobDescription: fullDescription,
+      company: company,
+      title: title
+    };
 
   } catch (error) {
     console.error('LinkedIn scraper error:', error);
@@ -110,8 +117,8 @@ async function scrapeLinkedInJob() {
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_JOB_DESCRIPTION') {
-    scrapeLinkedInJob().then(jobDescription => {
-      sendResponse({ jobDescription });
+    scrapeLinkedInJob().then(result => {
+      sendResponse(result);  // Now returns object with jobDescription, company, title
     });
     return true; // Keep channel open for async response
   }

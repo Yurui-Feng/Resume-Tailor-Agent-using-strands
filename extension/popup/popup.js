@@ -16,6 +16,8 @@ const elements = {
   scrapeBtn: document.getElementById('scrapeBtn'),
   jobPosting: document.getElementById('jobPosting'),
   charCount: document.getElementById('charCount'),
+  companyName: document.getElementById('companyName'),
+  desiredTitle: document.getElementById('desiredTitle'),
   resumeSelect: document.getElementById('resumeSelect'),
   includeExperience: document.getElementById('includeExperience'),
   renderPdf: document.getElementById('renderPdf'),
@@ -83,6 +85,7 @@ async function init() {
  */
 function setupUrlMonitoring() {
   let lastJobId = null;
+  let scrapeTimeout = null;
 
   // Extract job ID from LinkedIn URL
   function getJobIdFromUrl(url) {
@@ -107,9 +110,17 @@ function setupUrlMonitoring() {
 
           // Only auto-scrape if we're currently in formView
           if (!elements.formView.classList.contains('hidden')) {
-            console.log('New job detected, auto-scraping...', newJobId);
-            await checkForAutoScrape();
-            await checkScrapingAvailable();
+            // Clear any pending scrape
+            if (scrapeTimeout) {
+              clearTimeout(scrapeTimeout);
+            }
+
+            // Wait 1000ms for LinkedIn SPA to fully load content
+            scrapeTimeout = setTimeout(async () => {
+              console.log('Auto-scraping job:', newJobId);
+              await checkForAutoScrape();
+              await checkScrapingAvailable();
+            }, 1000);
           }
         }
       }
@@ -251,6 +262,15 @@ async function checkForAutoScrape() {
 
     if (response && response.jobDescription) {
       elements.jobPosting.value = response.jobDescription;
+
+      // Populate company and title if scraped
+      if (response.company) {
+        elements.companyName.value = response.company;
+      }
+      if (response.title) {
+        elements.desiredTitle.value = response.title;
+      }
+
       updateCharCount();
       validateForm();
       showScrapedNotice();
@@ -374,6 +394,17 @@ async function handleSubmit() {
     include_experience: elements.includeExperience.checked,
     render_pdf: elements.renderPdf.checked
   };
+
+  // Add optional fields only if provided (like SPA does)
+  const companyName = elements.companyName.value.trim();
+  const desiredTitle = elements.desiredTitle.value.trim();
+
+  if (companyName) {
+    data.company_name = companyName;
+  }
+  if (desiredTitle) {
+    data.desired_title = desiredTitle;
+  }
 
   try {
     showView('processingView');
@@ -605,6 +636,8 @@ function showView(viewName) {
  */
 function resetForm() {
   elements.jobPosting.value = '';
+  elements.companyName.value = '';
+  elements.desiredTitle.value = '';
   updateCharCount();
   validateForm();
 }
