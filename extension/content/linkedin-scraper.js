@@ -4,24 +4,36 @@
  */
 
 /**
- * Wait for element to appear in DOM (for SPAs)
+ * Wait for element to appear in DOM using MutationObserver (more efficient for SPAs)
  */
-function waitForElement(selector, timeout = 5000) {
+function waitForElement(selector, timeout = 15000) {
   return new Promise((resolve, reject) => {
-    const startTime = Date.now();
+    // Try immediately first
+    const element = document.querySelector(selector);
+    if (element) {
+      resolve(element);
+      return;
+    }
 
-    const check = () => {
+    // Use MutationObserver to watch for DOM changes
+    const observer = new MutationObserver((mutations, obs) => {
       const element = document.querySelector(selector);
       if (element) {
+        obs.disconnect();
         resolve(element);
-      } else if (Date.now() - startTime > timeout) {
-        reject(new Error('Element not found within timeout'));
-      } else {
-        setTimeout(check, 100);
       }
-    };
+    });
 
-    check();
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Timeout fallback
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error('Element not found within timeout'));
+    }, timeout);
   });
 }
 
@@ -35,7 +47,10 @@ async function scrapeLinkedInJob() {
     const descriptionSelectors = [
       '.show-more-less-html__markup',
       '.jobs-description__content',
+      '.jobs-box__html-content',
+      '.jobs-description-content__text',
       '.description__text',
+      '[class*="jobs-description"]',
       '[class*="job-details"]'
     ];
 
@@ -51,9 +66,9 @@ async function scrapeLinkedInJob() {
     if (!descriptionElement) {
       console.log('Job description not immediately found, waiting for page load...');
 
-      // Try all selectors in parallel with a single timeout
+      // Try all selectors in parallel with a single timeout (15s for slow LinkedIn)
       const waitPromises = descriptionSelectors.map(selector =>
-        waitForElement(selector, 7000).catch(() => null)
+        waitForElement(selector, 15000).catch(() => null)
       );
 
       const results = await Promise.all(waitPromises);

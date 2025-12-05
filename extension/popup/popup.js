@@ -202,8 +202,8 @@ async function ensureContentScriptLoaded(tabId, url) {
 
       if (response.success) {
         console.log('Content script injected successfully');
-        // Wait a bit for script to initialize before returning
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait longer for script to initialize (LinkedIn is slow)
+        await new Promise(resolve => setTimeout(resolve, 1500));
         return true;
       } else {
         console.error('Service worker failed to inject script:', response.error);
@@ -306,11 +306,11 @@ async function checkScrapingAvailable() {
 }
 
 /**
- * Auto-scrape when navigating to a new job (simplified auto-scraping)
+ * Auto-scrape when navigating to a new job (with retry logic for slow LinkedIn)
  */
-async function autoScrapeJob() {
+async function autoScrapeJob(isRetry = false) {
   try {
-    console.log('Auto-scraping job posting...');
+    console.log(isRetry ? 'Retrying auto-scrape...' : 'Auto-scraping job posting...');
 
     const response = await scrapeCurrentPage();
 
@@ -333,10 +333,19 @@ async function autoScrapeJob() {
       elements.scrapeBtn.textContent = 'Re-scrape Job Posting';
     } else {
       console.log('Auto-scrape found no content');
+      // Retry once after 3 seconds if this was the first attempt
+      if (!isRetry) {
+        console.log('Will retry auto-scrape in 3 seconds...');
+        setTimeout(() => autoScrapeJob(true), 3000);
+      }
     }
   } catch (error) {
     console.error('Auto-scrape error:', error);
-    // Don't show error notification for auto-scrape failures - user can manually scrape
+    // Retry once on error if this was the first attempt
+    if (!isRetry) {
+      console.log('Will retry auto-scrape in 3 seconds...');
+      setTimeout(() => autoScrapeJob(true), 3000);
+    }
   }
 }
 
