@@ -47,16 +47,15 @@ async function scrapeLinkedInJob() {
       if (descriptionElement) break;
     }
 
-    // If not found, wait for each selector with retries (LinkedIn SPA can be slow)
+    // If not found, wait with retries (LinkedIn SPA can be slow)
     if (!descriptionElement) {
-      for (const selector of descriptionSelectors) {
-        try {
-          descriptionElement = await waitForElement(selector, 5000);
-          if (descriptionElement) break;
-        } catch (e) {
-          continue; // Try next selector
-        }
-      }
+      // Try all selectors in parallel with a single timeout
+      const waitPromises = descriptionSelectors.map(selector =>
+        waitForElement(selector, 5000).catch(() => null)
+      );
+
+      const results = await Promise.all(waitPromises);
+      descriptionElement = results.find(el => el !== null) || null;
     }
 
     if (!descriptionElement) {

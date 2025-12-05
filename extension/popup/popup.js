@@ -116,10 +116,15 @@ function setupUrlMonitoring() {
 
         // Wait 1000ms for LinkedIn SPA to fully load content
         scrapeTimeout = setTimeout(async () => {
-          console.log('Auto-scraping job:', newJobId);
-          await checkForAutoScrape();
-          await checkScrapingAvailable();
-          isScrapePending = false;
+          try {
+            console.log('Auto-scraping job:', newJobId);
+            await checkForAutoScrape();
+            await checkScrapingAvailable();
+          } catch (error) {
+            console.error('Auto-scrape failed:', error);
+          } finally {
+            isScrapePending = false;
+          }
         }, 1000);
       }
     }
@@ -167,9 +172,16 @@ function setupUrlMonitoring() {
 
       // If we're already on a job page when popup opens, trigger auto-scrape
       if (currentJobId && !elements.formView.classList.contains('hidden')) {
+        isScrapePending = true;
         scrapeTimeout = setTimeout(async () => {
-          console.log('Initial auto-scrape on popup load:', currentJobId);
-          await checkForAutoScrape();
+          try {
+            console.log('Initial auto-scrape on popup load:', currentJobId);
+            await checkForAutoScrape();
+          } catch (error) {
+            console.error('Initial auto-scrape failed:', error);
+          } finally {
+            isScrapePending = false;
+          }
         }, 1000);
       }
     }
@@ -281,6 +293,8 @@ async function ensureContentScriptLoaded(tabId, url) {
 
       if (response.success) {
         console.log('Content script injected successfully');
+        // Wait a bit for script to initialize before returning
+        await new Promise(resolve => setTimeout(resolve, 500));
         return true;
       } else {
         console.error('Service worker failed to inject script:', response.error);
