@@ -64,25 +64,34 @@ async function scrapeLinkedInJob() {
     const titleSelectors = [
       '.top-card-layout__title',
       '.jobs-unified-top-card__job-title',
-      'h1[class*="job-title"]'
+      'h1[class*="job-title"]',
+      'h1'  // Fallback: LinkedIn typically has one h1 for job title
     ];
 
     let titleElement = null;
     for (const selector of titleSelectors) {
       titleElement = document.querySelector(selector);
-      if (titleElement) break;
+      if (titleElement && titleElement.innerText.trim()) break;
     }
 
     // Try to get company name
     const companySelectors = [
       '.topcard__org-name-link',
       '.jobs-unified-top-card__company-name',
-      'a[class*="company-name"]'
+      'a[class*="company-name"]',
+      'a[href*="/company/"]'  // Fallback: links to company pages
     ];
 
     let companyElement = null;
     for (const selector of companySelectors) {
-      companyElement = document.querySelector(selector);
+      const elements = document.querySelectorAll(selector);
+      // Find first non-empty company link
+      for (const el of elements) {
+        if (el.innerText && el.innerText.trim()) {
+          companyElement = el;
+          break;
+        }
+      }
       if (companyElement) break;
     }
 
