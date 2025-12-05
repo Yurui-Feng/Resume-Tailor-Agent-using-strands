@@ -49,17 +49,24 @@ async function scrapeLinkedInJob() {
 
     // If not found, wait with retries (LinkedIn SPA can be slow)
     if (!descriptionElement) {
+      console.log('Job description not immediately found, waiting for page load...');
+
       // Try all selectors in parallel with a single timeout
       const waitPromises = descriptionSelectors.map(selector =>
-        waitForElement(selector, 5000).catch(() => null)
+        waitForElement(selector, 7000).catch(() => null)
       );
 
       const results = await Promise.all(waitPromises);
       descriptionElement = results.find(el => el !== null) || null;
+
+      if (descriptionElement) {
+        console.log('Job description found after waiting');
+      }
     }
 
     if (!descriptionElement) {
-      console.log('LinkedIn job description not found after waiting');
+      console.error('LinkedIn job description not found. Tried selectors:', descriptionSelectors);
+      console.error('Current URL:', window.location.href);
       return null;
     }
 

@@ -331,9 +331,13 @@ async function scrapeCurrentPage() {
     }
 
     return new Promise((resolve, reject) => {
+      // Increased timeout to 10s to account for scraper's 5s wait + processing time
       const timeout = setTimeout(() => {
+        console.error('Content script timeout after 10s');
         reject(new Error('Content script not responding'));
-      }, 5000);
+      }, 10000);
+
+      console.log('Sending GET_JOB_DESCRIPTION message to tab:', tab.id);
 
       chrome.tabs.sendMessage(
         tab.id,
@@ -342,6 +346,7 @@ async function scrapeCurrentPage() {
           clearTimeout(timeout);
 
           if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError.message);
             reject(new Error(chrome.runtime.lastError.message));
             return;
           }
