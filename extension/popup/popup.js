@@ -65,7 +65,13 @@ async function init() {
   }
 
   // Check if scraping is available on current page
-  await checkScrapingAvailable();
+  const scrapingAvailable = await checkScrapingAvailable();
+
+  // If side panel opens on a job posting page, auto-scrape immediately
+  if (scrapingAvailable) {
+    console.log('Side panel opened on job posting page, auto-scraping...');
+    await autoScrapeJob();
+  }
 
   // Load saved preferences
   await loadPreferences();
