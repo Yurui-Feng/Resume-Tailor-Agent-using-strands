@@ -245,17 +245,26 @@ async function ensureContentScriptLoaded(tabId, url) {
     await chrome.tabs.sendMessage(tabId, { type: 'PING' });
     return true; // Already loaded
   } catch (error) {
-    // Content script not loaded, inject it
-    console.log('Content script not loaded, injecting...');
+    // Content script not loaded, inject it via service worker
+    console.log('Content script not loaded, requesting injection...');
 
     try {
       const scriptFile = isLinkedIn ? 'content/linkedin-scraper.js' : 'content/indeed-scraper.js';
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: [scriptFile]
+
+      // Ask service worker to inject the script (side panels can't use chrome.scripting directly)
+      const response = await chrome.runtime.sendMessage({
+        type: 'INJECT_CONTENT_SCRIPT',
+        tabId: tabId,
+        scriptFile: scriptFile
       });
-      console.log('Content script injected successfully');
-      return true;
+
+      if (response.success) {
+        console.log('Content script injected successfully');
+        return true;
+      } else {
+        console.error('Service worker failed to inject script:', response.error);
+        return false;
+      }
     } catch (injectError) {
       console.error('Failed to inject content script:', injectError);
       return false;

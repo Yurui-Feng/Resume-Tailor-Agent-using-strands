@@ -36,6 +36,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
     return true;
   }
+
+  if (message.type === 'INJECT_CONTENT_SCRIPT') {
+    injectContentScript(message.tabId, message.scriptFile)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 /**
@@ -115,6 +122,22 @@ async function checkJobStatus(jobId) {
     return data;
   } catch (error) {
     console.error('Error checking job status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Inject content script programmatically
+ */
+async function injectContentScript(tabId, scriptFile) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: [scriptFile]
+    });
+    console.log('Content script injected:', scriptFile);
+  } catch (error) {
+    console.error('Failed to inject content script:', error);
     throw error;
   }
 }
