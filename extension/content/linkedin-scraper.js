@@ -131,6 +131,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true; // Keep channel open for async response
   }
+
+  if (message.type === 'PING') {
+    sendResponse({ status: 'ok' });
+    return true;
+  }
 });
 
 console.log('LinkedIn scraper content script loaded');

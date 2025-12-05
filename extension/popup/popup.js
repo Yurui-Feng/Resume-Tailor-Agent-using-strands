@@ -212,6 +212,38 @@ async function loadResumes() {
 }
 
 /**
+ * Inject content script if not already present
+ */
+async function ensureContentScriptLoaded(tabId, url) {
+  const isLinkedIn = url.includes('linkedin.com/jobs');
+  const isIndeed = url.includes('indeed.com/viewjob');
+
+  if (!isLinkedIn && !isIndeed) return false;
+
+  try {
+    // Try to ping the content script
+    await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+    return true; // Already loaded
+  } catch (error) {
+    // Content script not loaded, inject it
+    console.log('Content script not loaded, injecting...');
+
+    try {
+      const scriptFile = isLinkedIn ? 'content/linkedin-scraper.js' : 'content/indeed-scraper.js';
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: [scriptFile]
+      });
+      console.log('Content script injected successfully');
+      return true;
+    } catch (injectError) {
+      console.error('Failed to inject content script:', injectError);
+      return false;
+    }
+  }
+}
+
+/**
  * Core scraping function (reusable for auto and manual scraping)
  * Returns { jobDescription: string } or null
  */
@@ -226,6 +258,13 @@ async function scrapeCurrentPage() {
     const isIndeed = url.includes('indeed.com/viewjob');
 
     if (!isLinkedIn && !isIndeed) return null;
+
+    // Ensure content script is loaded before trying to scrape
+    const scriptLoaded = await ensureContentScriptLoaded(tab.id, url);
+    if (!scriptLoaded) {
+      console.log('Content script could not be loaded');
+      return null;
+    }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
