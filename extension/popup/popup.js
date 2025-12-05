@@ -94,8 +94,30 @@ function setupUrlMonitoring() {
     return match ? match[1] : null;
   }
 
+  // Handle job ID change and trigger auto-scrape
+  async function handleJobIdChange(newJobId) {
+    if (newJobId && newJobId !== lastJobId) {
+      lastJobId = newJobId;
+
+      // Only auto-scrape if we're currently in formView
+      if (!elements.formView.classList.contains('hidden')) {
+        // Clear any pending scrape
+        if (scrapeTimeout) {
+          clearTimeout(scrapeTimeout);
+        }
+
+        // Wait 1000ms for LinkedIn SPA to fully load content
+        scrapeTimeout = setTimeout(async () => {
+          console.log('Auto-scraping job:', newJobId);
+          await checkForAutoScrape();
+          await checkScrapingAvailable();
+        }, 1000);
+      }
+    }
+  }
+
   // Listen for URL changes in the current tab
-  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
     // Only process URL changes for the active tab
     if (changeInfo.url) {
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -103,34 +125,32 @@ function setupUrlMonitoring() {
       // Check if this is the active tab and we're viewing the popup
       if (activeTab && tabId === activeTab.id) {
         const newJobId = getJobIdFromUrl(changeInfo.url);
-
-        // If job ID changed and we're on a job page, auto-scrape
-        if (newJobId && newJobId !== lastJobId) {
-          lastJobId = newJobId;
-
-          // Only auto-scrape if we're currently in formView
-          if (!elements.formView.classList.contains('hidden')) {
-            // Clear any pending scrape
-            if (scrapeTimeout) {
-              clearTimeout(scrapeTimeout);
-            }
-
-            // Wait 1000ms for LinkedIn SPA to fully load content
-            scrapeTimeout = setTimeout(async () => {
-              console.log('Auto-scraping job:', newJobId);
-              await checkForAutoScrape();
-              await checkScrapingAvailable();
-            }, 1000);
-          }
-        }
+        await handleJobIdChange(newJobId);
       }
     }
   });
 
-  // Initialize with current tab's job ID
-  chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+  // Listen for tab activation (switching tabs or opening new tabs)
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    const newJobId = getJobIdFromUrl(tab.url);
+    await handleJobIdChange(newJobId);
+  });
+
+  // Initialize with current tab's job ID and trigger initial check
+  chrome.tabs.query({ active: true, currentWindow: true }).then(async tabs => {
     if (tabs[0]) {
-      lastJobId = getJobIdFromUrl(tabs[0].url);
+      const currentJobId = getJobIdFromUrl(tabs[0].url);
+      lastJobId = currentJobId;
+
+      // If we're already on a job page when popup opens, trigger auto-scrape
+      if (currentJobId && !elements.formView.classList.contains('hidden')) {
+        scrapeTimeout = setTimeout(async () => {
+          console.log('Initial auto-scrape on popup load:', currentJobId);
+          await checkForAutoScrape();
+          await checkScrapingAvailable();
+        }, 1000);
+      }
     }
   });
 }
