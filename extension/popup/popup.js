@@ -14,7 +14,6 @@ const elements = {
   // Form elements
   scrapedNotice: document.getElementById('scrapedNotice'),
   scrapeBtn: document.getElementById('scrapeBtn'),
-  reloadScraperBtn: document.getElementById('reloadScraperBtn'),
   jobPosting: document.getElementById('jobPosting'),
   charCount: document.getElementById('charCount'),
   companyName: document.getElementById('companyName'),
@@ -52,6 +51,7 @@ let targetProgress = 0;
 let lastScrapedJobId = null;  // Track last scraped LinkedIn job ID for auto-scrape
 let urlPollingInterval = null;  // For detecting LinkedIn SPA navigation
 let lastCheckedUrl = null;  // Last URL we checked
+let hasReloadedForJobsPage = false;  // Track if we've already done a reload for this session
 
 /**
  * Extract LinkedIn currentJobId from URL
@@ -85,15 +85,40 @@ function startUrlPolling() {
       // Check if job ID changed (more reliable than full URL comparison)
       if (currentJobId && currentJobId !== lastJobId) {
         console.log('Job ID change detected:', lastJobId, '->', currentJobId);
+
+        // Check if we just navigated TO a specific job (vs between jobs)
+        // A "job page" requires both /jobs/ AND currentJobId= parameter
+        const wasOnSpecificJob = lastCheckedUrl && lastCheckedUrl.includes('currentJobId=');
+        const isFirstJobView = !wasOnSpecificJob;
+
         lastCheckedUrl = tab.url;
 
         // Check if we're on a job page
         const scrapingAvailable = await checkScrapingAvailable();
-        console.log('Scraping available:', scrapingAvailable);
+        console.log('Scraping available:', scrapingAvailable, '| First job view:', isFirstJobView);
 
         if (scrapingAvailable && currentJobId !== lastScrapedJobId) {
           console.log('New job detected via polling:', currentJobId, '(last scraped:', lastScrapedJobId, ')');
-          await autoScrapeJob();
+
+          // If this is the first job we're viewing this session and we haven't reloaded yet,
+          // we need to reload the page because LinkedIn SPA doesn't render job content on navigation
+          if (isFirstJobView && !hasReloadedForJobsPage) {
+            console.log('First job view - LinkedIn SPA requires page reload to render job content');
+            hasReloadedForJobsPage = true;
+
+            // Reload the tab to force LinkedIn to render the jobs page properly
+            await chrome.tabs.reload(tab.id);
+
+            // Wait for the page to reload and then try to scrape
+            console.log('Page reload triggered, waiting for load...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // After reload, the content should be available
+            await autoScrapeJob();
+          } else {
+            // For subsequent job clicks, try scraping directly (should work after reload)
+            await autoScrapeJob();
+          }
         }
       } else if (tab.url !== lastCheckedUrl) {
         // URL changed but no job ID change - just update baseline
@@ -170,9 +195,6 @@ function setupEventListeners() {
 
   // Manual scrape button
   elements.scrapeBtn.addEventListener('click', handleScrapeClick);
-
-  // Reload scraper button (force re-inject content script)
-  elements.reloadScraperBtn.addEventListener('click', handleReloadScraper);
 
   // Submit button
   elements.submitBtn.addEventListener('click', handleSubmit);
@@ -292,7 +314,8 @@ async function ensureContentScriptLoaded(tabId, url) {
 
 /**
  * Core scraping function (reusable for auto and manual scraping)
- * Returns { jobDescription: string } or null
+ * Uses MAIN world execution via service worker to bypass isolated world limitations
+ * Returns { jobDescription: string, company: string, title: string } or null
  */
 async function scrapeCurrentPage() {
   try {
@@ -306,38 +329,48 @@ async function scrapeCurrentPage() {
 
     if (!isLinkedIn && !isIndeed) return null;
 
-    // Ensure content script is loaded before trying to scrape
-    const scriptLoaded = await ensureContentScriptLoaded(tab.id, url);
-    if (!scriptLoaded) {
-      console.log('Content script could not be loaded');
+    console.log('Scraping via MAIN world for tab:', tab.id);
+
+    // Use service worker to execute script in MAIN world (bypasses CSP and isolated world issues)
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({
+        type: 'SCRAPE_JOB_MAIN_WORLD',
+        tabId: tab.id
+      });
+    } catch (msgError) {
+      console.error('Service worker communication error:', msgError);
       return null;
     }
 
-    return new Promise((resolve, reject) => {
-      // Increased timeout to 20s to account for scraper's 15s wait + processing time
-      const timeout = setTimeout(() => {
-        console.error('Content script timeout after 20s');
-        reject(new Error('Content script not responding'));
-      }, 20000);
+    if (!response) {
+      console.error('No response from service worker - try reloading the extension');
+      return null;
+    }
 
-      console.log('Sending GET_JOB_DESCRIPTION message to tab:', tab.id);
+    if (!response.success) {
+      console.error('MAIN world scrape failed:', response.error);
+      return null;
+    }
 
-      chrome.tabs.sendMessage(
-        tab.id,
-        { type: 'GET_JOB_DESCRIPTION' },
-        response => {
-          clearTimeout(timeout);
+    const data = response.data;
+    if (!data || !data.description) {
+      console.log('MAIN world scrape returned no data');
+      return null;
+    }
 
-          if (chrome.runtime.lastError) {
-            console.error('Chrome runtime error:', chrome.runtime.lastError.message);
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
+    // Build full description with title and company
+    let fullDescription = '';
+    if (data.title && data.company) {
+      fullDescription = `${data.title} at ${data.company}\n\n`;
+    }
+    fullDescription += data.description;
 
-          resolve(response);
-        }
-      );
-    });
+    return {
+      jobDescription: fullDescription,
+      company: data.company,
+      title: data.title
+    };
   } catch (error) {
     console.log('Scrape failed:', error);
     return null;
@@ -366,19 +399,15 @@ async function checkScrapingAvailable() {
 
     if (!isLinkedInJob && !isIndeedJob) {
       elements.scrapeBtn.classList.add('hidden');
-      elements.reloadScraperBtn.classList.add('hidden');
       return false;
     }
 
     elements.scrapeBtn.classList.remove('hidden');
     elements.scrapeBtn.disabled = false;
-    elements.reloadScraperBtn.classList.remove('hidden');
-    elements.reloadScraperBtn.disabled = false;
     return true;
   } catch (error) {
     console.log('Scraping availability check failed:', error);
     elements.scrapeBtn.classList.add('hidden');
-    elements.reloadScraperBtn.classList.add('hidden');
     return false;
   }
 }
@@ -472,74 +501,6 @@ async function handleScrapeClick() {
     showScrapedNotice(error.message || 'Failed to scrape job posting', 'error');
   } finally {
     elements.scrapeBtn.textContent = 'Re-scrape Job Posting';
-    elements.scrapeBtn.disabled = false;
-  }
-}
-
-/**
- * Handle reload scraper button - force re-inject content script and scrape
- */
-async function handleReloadScraper() {
-  if (elements.reloadScraperBtn.disabled) return;
-
-  try {
-    elements.reloadScraperBtn.disabled = true;
-    elements.reloadScraperBtn.textContent = '↻ Reloading...';
-    elements.scrapeBtn.disabled = true;
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) {
-      showScrapedNotice('No active tab found', 'error');
-      return;
-    }
-
-    const url = tab.url;
-    const isLinkedIn = url.includes('linkedin.com/jobs');
-    const isIndeed = url.includes('indeed.com/viewjob');
-    const scriptFile = isLinkedIn ? 'content/linkedin-scraper.js' : 'content/indeed-scraper.js';
-
-    console.log('Force re-injecting content script...');
-
-    // Force inject content script (will create new listener)
-    const response = await chrome.runtime.sendMessage({
-      type: 'INJECT_CONTENT_SCRIPT',
-      tabId: tab.id,
-      scriptFile: scriptFile
-    });
-
-    if (!response.success) {
-      throw new Error('Failed to inject content script');
-    }
-
-    console.log('Content script re-injected, waiting for initialization...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Now try to scrape
-    elements.reloadScraperBtn.textContent = '↻ Scraping...';
-    const scrapeResponse = await scrapeCurrentPage();
-
-    if (scrapeResponse && scrapeResponse.jobDescription) {
-      elements.jobPosting.value = scrapeResponse.jobDescription;
-
-      if (scrapeResponse.company) {
-        elements.companyName.value = scrapeResponse.company;
-      }
-      if (scrapeResponse.title) {
-        elements.desiredTitle.value = scrapeResponse.title;
-      }
-
-      updateCharCount();
-      validateForm();
-      showScrapedNotice('Scraper reloaded - job posting found!', 'success');
-    } else {
-      showScrapedNotice('Scraper reloaded but no content found', 'error');
-    }
-  } catch (error) {
-    console.error('Reload scraper error:', error);
-    showScrapedNotice('Reload failed: ' + error.message, 'error');
-  } finally {
-    elements.reloadScraperBtn.textContent = '↻ Reload';
-    elements.reloadScraperBtn.disabled = false;
     elements.scrapeBtn.disabled = false;
   }
 }
