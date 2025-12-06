@@ -49,6 +49,16 @@ let currentJobId = null;
 let statusCheckInterval = null;
 let currentProgress = 0;
 let targetProgress = 0;
+let lastScrapedJobId = null;  // Track last scraped LinkedIn job ID for auto-scrape
+
+/**
+ * Extract LinkedIn currentJobId from URL
+ */
+function extractLinkedInJobId(url) {
+  if (!url) return null;
+  const match = url.match(/currentJobId=(\d+)/);
+  return match ? match[1] : null;
+}
 
 /**
  * Initialize popup
@@ -124,14 +134,19 @@ function setupEventListeners() {
 
   // Listen for tab updates (when user navigates while side panel is open)
   chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-    // Only care about URL changes and when page is complete
-    if (changeInfo.status === 'complete' && tab.active) {
+    // Only care about completed page loads on active tab
+    if (changeInfo.status === 'complete' && tab.active && tab.url) {
       const scrapingAvailable = await checkScrapingAvailable();
 
-      // Auto-scrape if we're on a job posting page (simplified auto-scraping)
-      if (scrapingAvailable && changeInfo.url) {
-        console.log('URL changed to job posting page, auto-scraping...');
-        await autoScrapeJob();
+      if (scrapingAvailable) {
+        // Extract job ID from LinkedIn URL
+        const jobId = extractLinkedInJobId(tab.url);
+
+        // Auto-scrape if this is a new job (different from last scraped)
+        if (jobId && jobId !== lastScrapedJobId) {
+          console.log('New job detected:', jobId, '(last was:', lastScrapedJobId, ')');
+          await autoScrapeJob();
+        }
       }
     }
   });
@@ -331,6 +346,13 @@ async function autoScrapeJob(isRetry = false) {
       }
       if (response.title) {
         elements.desiredTitle.value = response.title;
+      }
+
+      // Track this job as scraped (for auto-scrape detection)
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.url) {
+        lastScrapedJobId = extractLinkedInJobId(tab.url);
+        console.log('Updated lastScrapedJobId:', lastScrapedJobId);
       }
 
       updateCharCount();
