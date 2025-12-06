@@ -17,7 +17,7 @@ graph LR
     P2 -->|"Issue #6<br/>Tab switching"| P3
     P3 -->|"Auto-scrape<br/>Side panel"| P4
 
-    P4 -.->|"⏱️ 50-85%<br/>faster"| RESULT["✨ Zero context<br/>switches"]
+    P4 -.->|"⏱️ 50-70%<br/>faster"| RESULT["✨ Zero context<br/>switches"]
 
     style P1 fill:#ffe0e0
     style P2 fill:#e0ffe0
@@ -30,25 +30,29 @@ graph LR
 
 ```
 BEFORE (Manual ChatGPT):                    AFTER (Chrome Extension):
-┌────────────────────────────────┐         ┌────────────────────────────────┐
-│ 1. Open ChatGPT        ⏱️ 1min │         │ 1. Click extension     ⏱️ 5sec │
-│ 2. Paste resume        ⏱️ 1min │         │ 2. Auto-scrapes job    ⏱️ 1sec │
-│ 3. Paste job desc      ⏱️ 1min │         │ 3. Click "Tailor"      ⏱️ 1min │
-│ 4. Copy AI output      ⏱️ 2min │         │ 4. Download PDF        ⏱️ 5sec │
-│ 5. Update LaTeX        ⏱️ 3min │         └────────────────────────────────┘
-│ 6. Compile PDF         ⏱️ 1min │         Total: ~1.5 minutes
-└────────────────────────────────┘
-Total: ~9 minutes
+----------------------------------------    ----------------------------------------
+1. Open ChatGPT           ~10 sec           1. Click extension            ~5 sec
+2. Paste resume           ~30 sec           2. Auto-scrapes job           ~1 sec
+3. Paste job desc         ~30 sec           3. Click "Tailor"             ~1 min
+4. Copy AI output         ~60 sec           4. Download PDF               ~5 sec
+5. Update LaTeX           ~90 sec           ----------------------------------------
+6. Compile PDF            ~30 sec           Total: ~1-1.5 minutes
+----------------------------------------
+Total: ~3.5-4 minutes
 ```
+
+
 
 **Efficiency Gains:**
 
 | Phase | What Changed | Time per Application |
-|-------|--------------|---------------------|
-| 1️⃣ ChatGPT | Manual prompting every time | 😓 ~9 min |
-| 2️⃣ SPA | Automated LaTeX + PDF | 😊 ~4 min |
-| 3️⃣ Bottleneck | Identified tab-switching issue | - |
-| 4️⃣ Extension | Auto-scrape + side panel | 🎉 ~1.5 min |
+|-------|--------------|----------------------|
+| 1. ChatGPT | Manual prompting every time | ~3.5-4 min |
+| 2. SPA | Automated LaTeX + PDF (still copy/paste jobs) | ~2.5-3 min |
+| 3. Bottleneck | Identified tab-switching issue | - |
+| 4. Extension | Auto-scrape + side panel | ~1-1.5 min |
+
+Timing assumes a typical 1-2 page job post; longer descriptions will take more time.
 
 <details>
 <summary>📖 View detailed phase breakdown</summary>
@@ -77,7 +81,7 @@ Total: ~9 minutes
 - Side panel stays open while browsing jobs
 - Zero context switches, zero copy-paste
 - Download directly without leaving job page
-- **Result: ~50-85% time saved per application**
+- **Result: ~50-70% time saved per application**
 
 </details>
 
@@ -87,9 +91,11 @@ Total: ~9 minutes
 
 ## Demo
 
-**[▶️ Watch Demo Video on YouTube](https://youtu.be/zmHSPKLxYpQ)**
+![Demo](demo.gif)
 
 See the Chrome Extension in action: automatically scraping job descriptions from LinkedIn/Indeed, tailoring resumes in real-time, and downloading PDFs—all without leaving the job posting page.
+
+**[▶️ Watch full video on YouTube](https://youtu.be/zmHSPKLxYpQ)**
 
 ---
 
