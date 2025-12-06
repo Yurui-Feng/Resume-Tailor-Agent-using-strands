@@ -3,6 +3,7 @@
     --brutal-bg-base: #f5f5f7;
     --brutal-bg-soft: #f0f1f3;
     --brutal-bg-veil: #e8eaed;
+    --brutal-bg-gradient: linear-gradient(180deg, #f6f6f8 0%, #f0f1f3 50%, #e9eaed 100%);
     --brutal-shadow: #16181d;
     --brutal-stroke: rgba(22, 24, 29, 0.16);
     --brutal-stroke-strong: rgba(22, 24, 29, 0.26);
@@ -21,21 +22,30 @@
     box-sizing: border-box;
 }
 
-body.brutalist-body {
-    width: 400px;
-    min-height: 500px;
-    max-height: 600px;
+html {
+    min-height: 100%;
     background-color: var(--brutal-bg-base);
-    background-image: linear-gradient(180deg, #f6f6f8 0%, #f0f1f3 50%, #e9eaed 100%);
+    background-image: var(--brutal-bg-gradient);
+}
+
+body.brutalist-body {
+    min-height: 100vh;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    background: transparent;
     color: var(--brutal-muted);
     font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 14px;
     line-height: 1.5;
     overflow-y: auto;
+    display: flex;
+    justify-content: center;
 }
 
 .brutalist-shell {
-    padding: 16px;
+    width: 100%;
+    padding: 18px 16px 20px;
 }
 
 /* Header */
@@ -79,8 +89,15 @@ body.brutalist-body {
 }
 
 /* Form Elements */
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
 .form-group {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 
 .form-label {
@@ -98,15 +115,15 @@ body.brutalist-body {
     border-radius: var(--brutal-radius-sm);
     background: var(--brutal-panel);
     color: var(--brutal-muted);
-    font-family: inherit;
     font-size: 13px;
     resize: vertical;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .brutalist-textarea:focus {
     outline: none;
     border-color: var(--brutal-accent);
+    box-shadow: 0 0 0 3px rgba(47, 53, 67, 0.12);
 }
 
 .char-count {
@@ -124,14 +141,38 @@ body.brutalist-body {
     border-radius: var(--brutal-radius-sm);
     background: var(--brutal-panel);
     color: var(--brutal-muted);
-    font-family: inherit;
     font-size: 13px;
     cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .brutalist-select:focus {
     outline: none;
     border-color: var(--brutal-accent);
+    box-shadow: 0 0 0 3px rgba(47, 53, 67, 0.12);
+}
+
+.brutalist-input {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--brutal-stroke);
+    border-radius: var(--brutal-radius-sm);
+    background: var(--brutal-panel);
+    color: var(--brutal-muted);
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.brutalist-input:focus {
+    outline: none;
+    border-color: var(--brutal-accent);
+    box-shadow: 0 0 0 3px rgba(47, 53, 67, 0.12);
+}
+
+.brutalist-input::placeholder,
+.brutalist-textarea::placeholder {
+    color: var(--brutal-muted);
+    opacity: 0.6;
 }
 
 /* Checkboxes */
@@ -146,6 +187,7 @@ body.brutalist-body {
 .brutalist-checkbox {
     margin-right: 8px;
     cursor: pointer;
+    accent-color: var(--brutal-accent);
 }
 
 /* Buttons */
@@ -156,7 +198,6 @@ body.brutalist-body {
     border-radius: var(--brutal-radius-sm);
     background: var(--brutal-panel);
     color: var(--brutal-muted);
-    font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -254,6 +295,7 @@ body.brutalist-body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 6px;
     margin-bottom: 14px;
     gap: 8px;
 }
