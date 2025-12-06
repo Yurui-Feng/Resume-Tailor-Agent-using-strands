@@ -14,6 +14,7 @@ const elements = {
   // Form elements
   scrapedNotice: document.getElementById('scrapedNotice'),
   scrapeBtn: document.getElementById('scrapeBtn'),
+  reloadScraperBtn: document.getElementById('reloadScraperBtn'),
   jobPosting: document.getElementById('jobPosting'),
   charCount: document.getElementById('charCount'),
   companyName: document.getElementById('companyName'),
@@ -93,6 +94,9 @@ function setupEventListeners() {
 
   // Manual scrape button
   elements.scrapeBtn.addEventListener('click', handleScrapeClick);
+
+  // Reload scraper button (force re-inject content script)
+  elements.reloadScraperBtn.addEventListener('click', handleReloadScraper);
 
   // Submit button
   elements.submitBtn.addEventListener('click', handleSubmit);
@@ -240,11 +244,11 @@ async function scrapeCurrentPage() {
     }
 
     return new Promise((resolve, reject) => {
-      // Increased timeout to 10s to account for scraper's 5s wait + processing time
+      // Increased timeout to 20s to account for scraper's 15s wait + processing time
       const timeout = setTimeout(() => {
-        console.error('Content script timeout after 10s');
+        console.error('Content script timeout after 20s');
         reject(new Error('Content script not responding'));
-      }, 10000);
+      }, 20000);
 
       console.log('Sending GET_JOB_DESCRIPTION message to tab:', tab.id);
 
@@ -292,15 +296,19 @@ async function checkScrapingAvailable() {
 
     if (!isLinkedInJob && !isIndeedJob) {
       elements.scrapeBtn.classList.add('hidden');
+      elements.reloadScraperBtn.classList.add('hidden');
       return false;
     }
 
     elements.scrapeBtn.classList.remove('hidden');
     elements.scrapeBtn.disabled = false;
+    elements.reloadScraperBtn.classList.remove('hidden');
+    elements.reloadScraperBtn.disabled = false;
     return true;
   } catch (error) {
     console.log('Scraping availability check failed:', error);
     elements.scrapeBtn.classList.add('hidden');
+    elements.reloadScraperBtn.classList.add('hidden');
     return false;
   }
 }
@@ -387,6 +395,74 @@ async function handleScrapeClick() {
     showScrapedNotice(error.message || 'Failed to scrape job posting', 'error');
   } finally {
     elements.scrapeBtn.textContent = 'Re-scrape Job Posting';
+    elements.scrapeBtn.disabled = false;
+  }
+}
+
+/**
+ * Handle reload scraper button - force re-inject content script and scrape
+ */
+async function handleReloadScraper() {
+  if (elements.reloadScraperBtn.disabled) return;
+
+  try {
+    elements.reloadScraperBtn.disabled = true;
+    elements.reloadScraperBtn.textContent = '↻ Reloading...';
+    elements.scrapeBtn.disabled = true;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      showScrapedNotice('No active tab found', 'error');
+      return;
+    }
+
+    const url = tab.url;
+    const isLinkedIn = url.includes('linkedin.com/jobs');
+    const isIndeed = url.includes('indeed.com/viewjob');
+    const scriptFile = isLinkedIn ? 'content/linkedin-scraper.js' : 'content/indeed-scraper.js';
+
+    console.log('Force re-injecting content script...');
+
+    // Force inject content script (will create new listener)
+    const response = await chrome.runtime.sendMessage({
+      type: 'INJECT_CONTENT_SCRIPT',
+      tabId: tab.id,
+      scriptFile: scriptFile
+    });
+
+    if (!response.success) {
+      throw new Error('Failed to inject content script');
+    }
+
+    console.log('Content script re-injected, waiting for initialization...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Now try to scrape
+    elements.reloadScraperBtn.textContent = '↻ Scraping...';
+    const scrapeResponse = await scrapeCurrentPage();
+
+    if (scrapeResponse && scrapeResponse.jobDescription) {
+      elements.jobPosting.value = scrapeResponse.jobDescription;
+
+      if (scrapeResponse.company) {
+        elements.companyName.value = scrapeResponse.company;
+      }
+      if (scrapeResponse.title) {
+        elements.desiredTitle.value = scrapeResponse.title;
+      }
+
+      updateCharCount();
+      validateForm();
+      showScrapedNotice('Scraper reloaded - job posting found!', 'success');
+    } else {
+      showScrapedNotice('Scraper reloaded but no content found', 'error');
+    }
+  } catch (error) {
+    console.error('Reload scraper error:', error);
+    showScrapedNotice('Reload failed: ' + error.message, 'error');
+  } finally {
+    elements.reloadScraperBtn.textContent = '↻ Reload';
+    elements.reloadScraperBtn.disabled = false;
     elements.scrapeBtn.disabled = false;
   }
 }
