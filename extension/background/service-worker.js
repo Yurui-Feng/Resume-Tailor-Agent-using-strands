@@ -3,7 +3,10 @@
  * Handles all API communication with the backend
  */
 
-const API_BASE = 'http://localhost:8000/api';
+// Change this to your Mac Mini's IP when deploying remotely
+// Local: 'http://localhost:8000/api'
+// Mac Mini: 'http://10.10.10.2:8000/api'
+const API_BASE = 'http://10.10.10.2:8000/api';
 
 /**
  * Message handler - receives messages from popup

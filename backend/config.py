@@ -66,6 +66,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
     "http://127.0.0.1:8000",
+    "http://10.10.10.2:8000",  # Mac Mini on local network
     "chrome-extension://*",  # Development: allow all Chrome extensions
 ]
 
