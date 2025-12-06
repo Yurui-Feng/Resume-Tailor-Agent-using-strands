@@ -87,7 +87,7 @@ Total: ~9 minutes
 
 ## Demo
 
-![Demo Video](demo.mp4)
+[![Demo Video](https://img.youtube.com/vi/zmHSPKLxYpQ/maxresdefault.jpg)](https://youtu.be/zmHSPKLxYpQ)
 
 **See it in action:** The Chrome Extension automatically scrapes job descriptions from LinkedIn/Indeed, tailors your resume in real-time, and downloads the PDF—all without leaving the job posting page.
 
