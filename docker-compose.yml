@@ -1,9 +1,12 @@
-version: '3.8'
-
 services:
   resume-tailor:
-    build: .
+    build:
+      context: .
+      platforms:
+        - linux/amd64
+        - linux/arm64
     container_name: resume-tailor
+    platform: linux/arm64  # For Apple Silicon
     ports:
       - "8000:8000"
     volumes:
