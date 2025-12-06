@@ -50,6 +50,8 @@ let statusCheckInterval = null;
 let currentProgress = 0;
 let targetProgress = 0;
 let lastScrapedJobId = null;  // Track last scraped LinkedIn job ID for auto-scrape
+let urlPollingInterval = null;  // For detecting LinkedIn SPA navigation
+let lastCheckedUrl = null;  // Last URL we checked
 
 /**
  * Extract LinkedIn currentJobId from URL
@@ -58,6 +60,53 @@ function extractLinkedInJobId(url) {
   if (!url) return null;
   const match = url.match(/currentJobId=(\d+)/);
   return match ? match[1] : null;
+}
+
+/**
+ * Start polling for URL changes (needed for LinkedIn SPA navigation)
+ */
+function startUrlPolling() {
+  if (urlPollingInterval) return;  // Already polling
+
+  console.log('Starting URL polling for SPA navigation detection');
+
+  urlPollingInterval = setInterval(async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.url) return;
+
+      // Check if URL changed
+      if (tab.url !== lastCheckedUrl) {
+        console.log('URL change detected:', lastCheckedUrl, '->', tab.url);
+        lastCheckedUrl = tab.url;
+
+        // Check if we're on a job page
+        const scrapingAvailable = await checkScrapingAvailable();
+
+        if (scrapingAvailable) {
+          const jobId = extractLinkedInJobId(tab.url);
+
+          // Auto-scrape if this is a new job
+          if (jobId && jobId !== lastScrapedJobId) {
+            console.log('New job detected via polling:', jobId);
+            await autoScrapeJob();
+          }
+        }
+      }
+    } catch (error) {
+      console.log('URL polling error:', error);
+    }
+  }, 1000);  // Check every 1 second
+}
+
+/**
+ * Stop URL polling
+ */
+function stopUrlPolling() {
+  if (urlPollingInterval) {
+    clearInterval(urlPollingInterval);
+    urlPollingInterval = null;
+  }
 }
 
 /**
@@ -75,6 +124,12 @@ async function init() {
     startPolling();
   }
 
+  // Get current URL for polling baseline
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.url) {
+    lastCheckedUrl = tab.url;
+  }
+
   // Check if scraping is available on current page
   const scrapingAvailable = await checkScrapingAvailable();
 
@@ -89,6 +144,9 @@ async function init() {
 
   // Setup event listeners
   setupEventListeners();
+
+  // Start URL polling for SPA navigation detection
+  startUrlPolling();
 }
 
 /**
@@ -132,27 +190,16 @@ function setupEventListeners() {
   elements.renderPdf.addEventListener('change', savePreferences);
   elements.resumeSelect.addEventListener('change', savePreferences);
 
-  // Listen for tab updates (when user navigates while side panel is open)
-  chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-    // Only care about completed page loads on active tab
-    if (changeInfo.status === 'complete' && tab.active && tab.url) {
-      const scrapingAvailable = await checkScrapingAvailable();
-
-      if (scrapingAvailable) {
-        // Extract job ID from LinkedIn URL
-        const jobId = extractLinkedInJobId(tab.url);
-
-        // Auto-scrape if this is a new job (different from last scraped)
-        if (jobId && jobId !== lastScrapedJobId) {
-          console.log('New job detected:', jobId, '(last was:', lastScrapedJobId, ')');
-          await autoScrapeJob();
-        }
-      }
-    }
-  });
+  // Note: URL polling in startUrlPolling() handles SPA navigation detection
+  // The onUpdated listener doesn't work reliably for LinkedIn SPA
 
   // Listen for tab activation (when user switches tabs while side panel is open)
   chrome.tabs.onActivated.addListener(async () => {
+    // Update the URL baseline when switching tabs
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.url) {
+      lastCheckedUrl = tab.url;
+    }
     await checkScrapingAvailable();
   });
 }
