@@ -73,25 +73,33 @@ function startUrlPolling() {
   urlPollingInterval = setInterval(async () => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.url) return;
+      if (!tab?.url) {
+        console.log('URL polling: no tab URL');
+        return;
+      }
 
-      // Check if URL changed
-      if (tab.url !== lastCheckedUrl) {
-        console.log('URL change detected:', lastCheckedUrl, '->', tab.url);
+      // Extract job IDs for comparison
+      const currentJobId = extractLinkedInJobId(tab.url);
+      const lastJobId = extractLinkedInJobId(lastCheckedUrl);
+
+      // Check if job ID changed (more reliable than full URL comparison)
+      if (currentJobId && currentJobId !== lastJobId) {
+        console.log('Job ID change detected:', lastJobId, '->', currentJobId);
         lastCheckedUrl = tab.url;
 
         // Check if we're on a job page
         const scrapingAvailable = await checkScrapingAvailable();
+        console.log('Scraping available:', scrapingAvailable);
 
-        if (scrapingAvailable) {
-          const jobId = extractLinkedInJobId(tab.url);
-
-          // Auto-scrape if this is a new job
-          if (jobId && jobId !== lastScrapedJobId) {
-            console.log('New job detected via polling:', jobId);
-            await autoScrapeJob();
-          }
+        if (scrapingAvailable && currentJobId !== lastScrapedJobId) {
+          console.log('New job detected via polling:', currentJobId, '(last scraped:', lastScrapedJobId, ')');
+          await autoScrapeJob();
         }
+      } else if (tab.url !== lastCheckedUrl) {
+        // URL changed but no job ID change - just update baseline
+        console.log('URL changed (no job ID change):', tab.url.substring(0, 80));
+        lastCheckedUrl = tab.url;
+        await checkScrapingAvailable();
       }
     } catch (error) {
       console.log('URL polling error:', error);
