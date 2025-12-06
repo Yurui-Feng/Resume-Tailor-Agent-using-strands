@@ -4,8 +4,10 @@ venv/
 env/
 ENV/
 
-# resumes:
+# resumes (ignore all except sample template):
 data/
+!data/original/
+!data/original/sample_resume.tex
 
 # Python cache
 __pycache__/

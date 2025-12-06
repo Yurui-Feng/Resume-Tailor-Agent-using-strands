@@ -1,0 +1,273 @@
+%-------------------------------------
+% LaTeX Resume for Software Engineers
+% Author : Leslie Cheng
+% License : MIT
+%-------------------------------------
+
+\documentclass[a4paper,10.5pt]{article}[leftmargin=*]
+
+\usepackage[empty]{fullpage}
+\usepackage{enumitem}
+\usepackage{ifxetex}
+\ifxetex
+  \usepackage{fontspec}
+  \usepackage[xetex]{hyperref}
+\else
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage[pdftex]{hyperref}
+\fi
+\usepackage{fontawesome}
+\usepackage[sfdefault,light]{FiraSans}
+\usepackage{anyfontsize}
+\usepackage{xcolor}
+\usepackage{tabularx}
+
+%-------------------------------------------------- SETTINGS HERE --------------------------------------------------
+% Header settings
+\def \fullname {Alex Johnson}
+\def \subtitle {Software Engineer}
+
+\def \linkedinicon {\faLinkedin}
+\def \linkedinlink {https://linkedin.com/in/alex-johnson/}
+\def \linkedintext {/alex-johnson}
+
+\def \phoneicon {\faPhone}
+\def \phonetext {+1 555-123-4567}
+
+\def \emailicon {\faEnvelope}
+\def \emaillink {mailto:alex.johnson@example.com}
+\def \emailtext {alex.johnson@example.com}
+
+\def \githubicon {\faGithub}
+\def \githublink {https://github.com/alex-johnson}
+\def \githubtext {/alex-johnson}
+
+\def \locationicon{\faHome}
+\def \locationtext {San Francisco, CA, 94102}
+
+\def \websiteicon {\faGlobe}
+\def \websitelink {https://www.alexjohnson.dev/}
+\def \websitetext {alexjohnson.dev}
+
+
+\def \headertype {\doublecol} % \singlecol or \doublecol
+
+% Misc settings
+\def \entryspacing {0pt}
+
+\def \bulletstyle {\faAngleRight}
+
+% Define colours
+\definecolor{primary}{HTML}{000000}
+\definecolor{secondary}{HTML}{0D47A1}
+\definecolor{accent}{HTML}{263238}
+\definecolor{links}{HTML}{1565C0}
+
+%-------------------------------------------------------------------------------------------------------------------
+
+% Defines to make listing easier
+\def \linkedin {\linkedinicon \hspace{3pt}\href{\linkedinlink}{\linkedintext}}
+\def \phone {\phoneicon \hspace{3pt}{ \phonetext}}
+\def \email {\emailicon \hspace{3pt}\href{\emaillink}{\emailtext}}
+\def \github {\githubicon \hspace{3pt}\href{\githublink}{\githubtext}}
+\def \location {\locationicon \hspace{3pt}{ \locationtext}}
+\def \website {\websiteicon \hspace{3pt}\href{\websitelink}{\websitetext}}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.55in}
+\addtolength{\evensidemargin}{-0.55in}
+\addtolength{\textwidth}{1.1in}
+\addtolength{\topmargin}{-0.7in}
+\addtolength{\textheight}{1.1in}
+
+% Define the link colours
+\hypersetup{
+    colorlinks=true,
+    urlcolor=links,
+}
+
+% Set the margin alignment
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+%-------------------------
+% Custom commands
+
+
+% Sections
+\renewcommand{\section}[2]{\vspace{3pt}
+  \colorbox{secondary}{\color{white}\raggedbottom\normalsize\textbf{{#1}{\hspace{8pt}#2}}}
+}
+
+% Entry start and end, for spacing
+\newcommand{\resumeEntryStart}{\begin{itemize}[leftmargin=0mm]}
+\newcommand{\resumeEntryEnd}{\end{itemize}\vspace{\entryspacing}}
+
+% Itemized list for the bullet points under an entry, if necessary
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0mm]}
+\newcommand{\resumeItemListEnd}{\end{itemize}}
+
+% Resume item
+\renewcommand{\labelitemii}{\bulletstyle}
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+% Entry with title, subheading, date(s), and location
+\newcommand{\resumeEntryTSDL}[4]{
+  \vspace{-3pt}\item[]
+    \begin{tabularx}{0.97\textwidth}{X@{\hspace{60pt}}r}
+      \textbf{\color{primary}#1} & {\firabook\color{accent}\small#2} \\
+      \textit{\color{accent}\small#3} & \textit{\color{accent}\small#4} \\
+    \end{tabularx}\vspace{-6pt}
+}
+
+% Entry with title and date(s)
+\newcommand{\resumeEntryTD}[2]{
+  \vspace{-1pt}\item[]
+    \begin{tabularx}{0.97\textwidth}{X@{\hspace{60pt}}r}
+      \textbf{\color{primary}#1} & {\firabook\color{accent}\small#2} \\
+    \end{tabularx}\vspace{-6pt}
+}
+
+% Entry for special (skills)
+\newcommand{\resumeEntryS}[2]{
+  \item[]\small{
+    \textbf{\color{primary}#1 }{ #2 \vspace{-6pt}}
+  }
+}
+
+% Double column header
+\newcommand{\doublecol}[6]{
+  \begin{tabularx}{\textwidth}{Xr}
+    {
+      \begin{tabular}[c]{l}
+        \fontsize{30}{38}\selectfont{\color{primary}{{\textbf{\fullname}}}} \\
+        {\textit{\subtitle}} % You could add a subtitle here
+      \end{tabular}
+    } & {
+      \begin{tabular}[c]{l@{\hspace{1.5em}}l}
+        {\small#4} & {\small#1} \\
+        {\small#5} & {\small#2} \\
+        {\small#6} & {\small#3}
+      \end{tabular}
+    }
+  \end{tabularx}
+}
+
+% Single column header
+\newcommand{\singlecol}[6]{
+  \begin{tabularx}{\textwidth}{Xr}
+    {
+      \begin{tabular}[b]{l}
+        \fontsize{35}{45}\selectfont{\color{primary}{{\textbf{\fullname}}}} \\
+        {\textit{\subtitle}} % You could add a subtitle here
+      \end{tabular}
+    } & {
+      \begin{tabular}[c]{l}
+        {\small#1} \\
+        {\small#2} \\
+        {\small#3} \\
+        {\small#4} \\
+        {\small#5} \\
+        {\small#6}
+      \end{tabular}
+    }
+  \end{tabularx}
+}
+
+\begin{document}
+%-------------------------------------------------- BEGIN HERE --------------------------------------------------
+
+%---------------------------------------------------- HEADER ----------------------------------------------------
+
+\headertype{\linkedin}{\github}{\website}{\phone}{\location}{\email}{} % Set the order of items here
+\vspace{-5pt} % Set a negative value to push the body up, and the opposite
+
+% ======= TARGETED SUMMARY =======
+\section{\faUser}{Professional Summary}
+\vspace{-2pt}
+\resumeEntryStart
+  \item[] \small{
+Software Engineer with 5+ years of experience building \textbf{scalable web applications} and \textbf{cloud-native solutions}. Proficient in \textbf{full-stack development} using \textbf{React}, \textbf{Node.js}, and \textbf{Python}, with expertise in designing \textbf{RESTful APIs} and \textbf{microservices architectures}. Strong background in \textbf{AWS} infrastructure, \textbf{CI/CD pipelines}, and \textbf{containerization} with Docker and Kubernetes. Experienced in collaborating with cross-functional teams to deliver high-quality software solutions that improve user experience and operational efficiency. Passionate about writing clean, maintainable code and leveraging modern development practices to solve complex technical challenges.}
+\resumeEntryEnd
+
+%-------------------------------------------------- EDUCATION --------------------------------------------------
+\section{\faGraduationCap}{Education}
+
+ \resumeEntryStart
+   \resumeEntryTSDL
+     {Stanford University}{09/2016 -- 06/2020}
+     {B.S., Computer Science (GPA: 3.8/4.0)}{Stanford, CA}
+
+   \resumeEntryTSDL
+     {Massachusetts Institute of Technology}{09/2020 -- 05/2022}
+     {M.S., Computer Science (GPA: 3.9/4.0)}{Cambridge, MA}
+ \resumeEntryEnd
+
+%-------------------------------------------------- PROFESSIONAL EXPERIENCE --------------------------------------------------
+
+\section{\faBriefcase}{Professional Experience}
+
+\resumeEntryStart
+  \resumeEntryTSDL
+    {Senior Software Engineer}{01/2023 -- Present}
+    {TechCorp Inc.}{San Francisco, CA | Full-time}
+  \resumeItemListStart
+    \resumeItem{Led development of \textbf{microservices architecture} serving 10M+ daily active users, reducing API response time by 40\% through optimized database queries and \textbf{Redis caching} strategies.}
+    \resumeItem{Architected and deployed \textbf{event-driven} data pipelines using \textbf{Apache Kafka} and \textbf{AWS Lambda}, processing 500K+ events per hour with 99.9\% reliability.}
+    \resumeItem{Implemented \textbf{CI/CD pipelines} with \textbf{GitHub Actions} and \textbf{Docker}, reducing deployment time from 2 hours to 15 minutes and enabling daily production releases.}
+    \resumeItem{Mentored team of 5 junior engineers on best practices for \textbf{code reviews}, \textbf{testing strategies}, and \textbf{system design}, improving team productivity by 30\%.}
+    \resumeItem{Designed \textbf{RESTful APIs} and \textbf{GraphQL} endpoints with comprehensive documentation using \textbf{OpenAPI/Swagger}, improving developer onboarding experience.}
+    \resumeItem{Established \textbf{monitoring and observability} practices using \textbf{Datadog} and \textbf{CloudWatch}, creating dashboards and alerts that reduced incident response time by 50\%.}
+  \resumeItemListEnd
+\resumeEntryEnd
+
+\resumeEntryStart
+  \resumeEntryTSDL
+    {Software Engineer}{06/2022 -- 12/2022}
+    {StartupXYZ}{Palo Alto, CA}
+  \resumeItemListStart
+    \resumeItem{Built customer-facing \textbf{React} dashboard with real-time data visualization using \textbf{WebSocket} connections, improving user engagement by 25\%.}
+    \resumeItem{Developed \textbf{Python}-based backend services with \textbf{FastAPI} and \textbf{PostgreSQL}, handling authentication, authorization, and data processing for 50K+ users.}
+    \resumeItem{Migrated legacy monolithic application to \textbf{containerized microservices} on \textbf{AWS ECS}, reducing infrastructure costs by 35\% while improving scalability.}
+    \resumeItem{Implemented \textbf{automated testing} framework using \textbf{Jest}, \textbf{Pytest}, and \textbf{Selenium}, achieving 85\% code coverage and reducing production bugs by 40\%.}
+  \resumeItemListEnd
+\resumeEntryEnd
+
+\resumeEntryStart
+  \resumeEntryTSDL
+    {Software Engineering Intern}{05/2021 -- 08/2021}
+    {Google}{Mountain View, CA}
+  \resumeItemListStart
+    \resumeItem{Contributed to internal \textbf{developer tools} platform, building features for code search and dependency management used by 10K+ engineers.}
+    \resumeItem{Optimized \textbf{data processing pipelines} using \textbf{Apache Beam} and \textbf{Google Cloud Dataflow}, reducing processing time for large datasets by 60\%.}
+    \resumeItem{Collaborated with UX designers and product managers in \textbf{agile} environment to deliver features that improved developer productivity.}
+  \resumeItemListEnd
+\resumeEntryEnd
+
+
+\section{\faGears}{Technical Proficiencies}
+ \resumeEntryStart
+  \resumeEntryS{Languages}{Python, JavaScript/TypeScript, Java, Go, SQL, Bash}
+  \resumeEntryS{Frontend}{React, Redux, Next.js, Vue.js, HTML/CSS, Tailwind CSS, Material-UI}
+  \resumeEntryS{Backend}{Node.js, Express, FastAPI, Flask, Django, Spring Boot, GraphQL, REST APIs}
+  \resumeEntryS{Cloud \& Infrastructure}{AWS (EC2, S3, Lambda, RDS, DynamoDB, ECS, CloudWatch), GCP, Azure, Terraform, Docker, Kubernetes}
+  \resumeEntryS{Databases}{PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch, DynamoDB}
+  \resumeEntryS{DevOps \& Tools}{Git, GitHub Actions, Jenkins, CircleCI, Datadog, New Relic, Prometheus, Grafana}
+  \resumeEntryS{Message Queues}{Apache Kafka, RabbitMQ, AWS SQS/SNS}
+  \resumeEntryS{Testing}{Jest, Pytest, Selenium, Cypress, JUnit, Postman}
+ \resumeEntryEnd
+
+\section{\faCertificate}{Certifications}
+ \resumeEntryStart
+  \resumeEntryS{AWS Certified Solutions Architect - Professional } {Amazon Web Services Training and Certification - 2023}
+  \resumeEntryS{AWS Certified Developer - Associate } {Amazon Web Services Training and Certification - 2022}
+  \resumeEntryS{Certified Kubernetes Administrator (CKA) } {Cloud Native Computing Foundation - 2023}
+ \resumeEntryEnd
+
+\end{document}

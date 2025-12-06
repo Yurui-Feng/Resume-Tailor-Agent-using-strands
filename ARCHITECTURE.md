@@ -101,25 +101,41 @@ Streamlined Workflow with Extension:
 ## System Architecture Diagram
 
 ```mermaid
+---
+config:
+  look: classic
+  theme: base
+  themeVariables:
+    background: "#f3f4f6"
+    lineColor: "#6b7280"
+    edgeLabelBackground: "#e5e7eb"
+    fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    fontSize: "18px"
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 60
+---
 flowchart LR
+    %% Nodes
     subgraph Client["Client Layer"]
-        EXT[Chrome Extension<br/>Side Panel + Auto-scrape]
-        WEB[Web UI<br/>SPA Frontend]
+        EXT(Chrome Extension<br/>Side Panel + Auto-scrape)
+        WEB(Web UI<br/>SPA Frontend)
     end
 
     subgraph Backend["Backend Layer"]
-        API[FastAPI Gateway<br/>/health /resumes /tailor /status /results]
-        ORCH[Resume Tailor Orchestrator<br/>Strands Agent + Tools]
+        API(FastAPI Gateway<br/>/health /resumes /tailor /status /results)
+        ORCH(Resume Tailor Orchestrator<br/>Strands Agent + Tools)
     end
 
     subgraph AI["AI Layer"]
-        META[Metadata Extractor<br/>GPT-4o-mini]
-        TAILOR[Resume Tailor Agent<br/>GPT-5.1 / Bedrock]
+        META(Metadata Extractor<br/>GPT-4o-mini)
+        TAILOR(Resume Tailor Agent<br/>GPT-5.1 / Bedrock)
     end
 
     subgraph Processing["Processing Layer"]
-        MERGE[Section Merger<br/>LaTeX-safe parsing]
-        PDF[PDF Compiler<br/>pdflatex]
+        MERGE(Section Merger<br/>LaTeX-safe parsing)
+        PDF(PDF Compiler<br/>pdflatex)
     end
 
     subgraph Storage["Storage Layer"]
@@ -127,6 +143,7 @@ flowchart LR
         OUT[(Tailored<br/>Outputs)]
     end
 
+    %% Edges
     EXT -->|Job description| API
     WEB -->|Job description| API
     API -->|Submit job| ORCH
@@ -139,6 +156,26 @@ flowchart LR
     OUT -->|Download| API
     API -->|Results| EXT
     API -->|Results| WEB
+
+    %% Node color classes
+    classDef client    fill:#2563eb,stroke:#111827,stroke-width:2px,color:#ffffff;
+    classDef backend   fill:#0ea5e9,stroke:#111827,stroke-width:2px,color:#ffffff;
+    classDef ai        fill:#a855f7,stroke:#111827,stroke-width:2px,color:#ffffff;
+    classDef process   fill:#f97316,stroke:#111827,stroke-width:2px,color:#ffffff;
+    classDef storage   fill:#22c55e,stroke:#111827,stroke-width:2px,color:#ffffff;
+
+    class EXT,WEB client;
+    class API,ORCH backend;
+    class META,TAILOR ai;
+    class MERGE,PDF process;
+    class ORIG,OUT storage;
+
+    %% Layer background colors (subgraphs)
+    style Client fill:#e0f2fe,stroke:#93c5fd,stroke-width:1px;
+    style Backend fill:#fef9c3,stroke:#facc15,stroke-width:1px;
+    style AI fill:#fae8ff,stroke:#e879f9,stroke-width:1px;
+    style Processing fill:#fffbeb,stroke:#fdba74,stroke-width:1px;
+    style Storage fill:#ecfdf3,stroke:#4ade80,stroke-width:1px;
 ```
 
 ---

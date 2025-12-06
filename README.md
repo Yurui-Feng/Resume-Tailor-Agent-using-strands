@@ -127,7 +127,19 @@ docker-compose up -d
 
 - **Docker** (recommended) or **Python 3.10+**
 - **OpenAI API key** or AWS Bedrock credentials
-- LaTeX resume template (.tex file)
+- **LaTeX resume template** (.tex file) - Compatible with [Leslie Cheng's template](https://github.com/lcfyi/software-resume-template)
+
+### LaTeX Template Requirements
+
+This application works best with structured LaTeX resumes that use:
+- Clearly marked `\section{}` commands for sections
+- Specific section names: `Professional Summary`, `Technical Proficiencies`, `Professional Experience`
+- Custom macros and preambles (automatically preserved)
+- FontAwesome icons and Fira Sans font (included in Docker)
+
+**Recommended template:** [Software Engineering Resume by Leslie Cheng](https://github.com/lcfyi/software-resume-template) ([Overleaf](https://www.overleaf.com/latex/templates/software-engineering-resume/mcvwcrmddsyw))
+
+ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧ **Sample template:** See [data/original/sample_resume.tex](data/original/sample_resume.tex)
 
 ---
 
