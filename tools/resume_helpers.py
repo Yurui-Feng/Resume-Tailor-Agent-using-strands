@@ -432,20 +432,46 @@ def parse_sections(result) -> Dict[str, str]:
         "Professional Experience": None
     }
 
+    # Regex patterns for section labels (typo-tolerant)
+    label_patterns = {
+        "SUBTITLE": r"SUBTITLE\s*:",
+        "PROFESSIONAL SUMMARY": r"PROFESSIONAL\s+SUMMARY\s*:",
+        # Catch PROFICIENCIES, PROFIENCIES, PROIFICIENCIES, PROFICIENCES, etc.
+        "TECHNICAL PROFICIENCIES": r"TECHNICAL\s+PROF\w*\s*:",
+        "OPTIONAL EXPERIENCE": r"OPTIONAL\s+EXPERIENCE\s*:",
+    }
+
+    def find_label_position(text: str, label_key: str, start_pos: int = 0) -> int:
+        """Find position of a label using regex pattern. Returns -1 if not found."""
+        pattern = label_patterns.get(label_key, re.escape(label_key) + r"\s*:")
+        match = re.search(pattern, text[start_pos:], re.IGNORECASE)
+        if match:
+            return start_pos + match.start()
+        return -1
+
+    def find_label_end(text: str, label_key: str, start_pos: int = 0) -> int:
+        """Find the end position of a label (after the colon). Returns -1 if not found."""
+        pattern = label_patterns.get(label_key, re.escape(label_key) + r"\s*:")
+        match = re.search(pattern, text[start_pos:], re.IGNORECASE)
+        if match:
+            return start_pos + match.end()
+        return -1
+
     def extract_block(label):
-        """Extract content between label and next label."""
-        pattern = f"{label}:"
-        if pattern not in result:
+        """Extract content between label and next label (typo-tolerant)."""
+        label_end = find_label_end(result, label)
+        if label_end == -1:
             return None
 
-        start = result.index(pattern) + len(pattern)
-
         # Find next label or end of string
-        next_labels = ["SUBTITLE:", "PROFESSIONAL SUMMARY:", "TECHNICAL PROFICIENCIES:", "OPTIONAL EXPERIENCE:"]
-        next_positions = [result.find(l, start) for l in next_labels if result.find(l, start) != -1]
-        end = min(next_positions) if next_positions else len(result)
+        next_positions = []
+        for next_label in label_patterns.keys():
+            pos = find_label_position(result, next_label, label_end)
+            if pos != -1:
+                next_positions.append(pos)
 
-        return result[start:end].strip()
+        end = min(next_positions) if next_positions else len(result)
+        return result[label_end:end].strip()
 
     # Extract each section
     subtitle = extract_block("SUBTITLE")
@@ -497,6 +523,9 @@ def _post_process_sections(sections: Dict[str, str]) -> Dict[str, str]:
 
 def _strip_label_prefix(text: str, label: Optional[str] = None) -> str:
     """Remove leading label text (e.g., TECHNICAL PROFIENCIES:) before \\section and trailing labels."""
+    # Broader pattern for TECHNICAL PROF* to catch all typos
+    tech_prof_pattern = r"TECHNICAL\s+PROF\w*"
+
     # Remove label from the beginning
     if label:
         text = re.sub(
@@ -509,10 +538,19 @@ def _strip_label_prefix(text: str, label: Optional[str] = None) -> str:
     # Remove any section labels that appear at the END (common AI mistake)
     # Matches patterns like: "TECHNICAL PROFICIENCIES:" or "OPTIONAL EXPERIENCE:" at the end
     text = re.sub(
-        r"\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:\s*$",
+        rf"\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|{tech_prof_pattern}|OPTIONAL\s+EXPERIENCE)\s*:\s*$",
         "",
         text,
         flags=re.IGNORECASE,
+    )
+
+    # Remove standalone section labels on their own line ANYWHERE in the content
+    # This catches labels that appear in the middle of content (between sections)
+    text = re.sub(
+        rf"^\s*(SUBTITLE|PROFESSIONAL\s+SUMMARY|{tech_prof_pattern}|OPTIONAL\s+EXPERIENCE)\s*:\s*$",
+        "",
+        text,
+        flags=re.MULTILINE | re.IGNORECASE,
     )
 
     section_idx = text.find(r"\section")
@@ -1141,10 +1179,13 @@ def _post_merge_cleanup(output_path: str) -> None:
 
     latex = output_file.read_text(encoding='utf-8')
 
+    # Broader pattern for TECHNICAL PROF* to catch all typos (PROFICIENCIES, PROFIENCIES, PROIFICIENCIES, etc.)
+    tech_prof_pattern = r"TECHNICAL\s+PROF\w*"
+
     # Remove stray section labels that appear after \resumeEntryEnd or elsewhere
     # This catches patterns like: "\resumeEntryEnd TECHNICAL PROFICIENCIES:"
     latex = re.sub(
-        r"(\\resumeEntryEnd)\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:",
+        rf"(\\resumeEntryEnd)\s+(SUBTITLE|PROFESSIONAL\s+SUMMARY|{tech_prof_pattern}|OPTIONAL\s+EXPERIENCE)\s*:",
         r"\1",
         latex,
         flags=re.IGNORECASE,
@@ -1152,10 +1193,19 @@ def _post_merge_cleanup(output_path: str) -> None:
 
     # Also remove labels that appear before \section (old pattern, kept for safety)
     latex = re.sub(
-        r"(SUBTITLE|PROFESSIONAL\s+SUMMARY|TECHNICAL\s+PROF[FI]+CIENCIES?|OPTIONAL\s+EXPERIENCE)\s*:\s*(?=\\section\{)",
+        rf"(SUBTITLE|PROFESSIONAL\s+SUMMARY|{tech_prof_pattern}|OPTIONAL\s+EXPERIENCE)\s*:\s*(?=\\section\{{)",
         "",
         latex,
         flags=re.IGNORECASE,
+    )
+
+    # Remove standalone section labels on their own line (e.g., between sections)
+    # This catches patterns like: "\resumeEntryEnd\nTECHNICAL PROFICIENCIES:\n\section"
+    latex = re.sub(
+        rf"^\s*(SUBTITLE|PROFESSIONAL\s+SUMMARY|{tech_prof_pattern}|OPTIONAL\s+EXPERIENCE)\s*:\s*$",
+        "",
+        latex,
+        flags=re.MULTILINE | re.IGNORECASE,
     )
 
     latex = _remove_duplicate_sections(latex, "Technical Proficiencies")
