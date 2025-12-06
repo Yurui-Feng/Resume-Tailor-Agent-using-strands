@@ -2,6 +2,38 @@
 
 AI-powered resume and cover letter customization using [Strands Agents SDK](https://strandsagents.com). This application intelligently tailors your LaTeX resume and generates matching cover letters for specific job postings using advanced language models.
 
+## The Problem This Solves
+
+### Evolution from Manual ChatGPT to Automated Extension
+
+**Phase 1: Manual ChatGPT Workflow** 😓
+- Open ChatGPT for every job application
+- Paste entire LaTeX resume template every time
+- Manually copy AI-generated sections back into LaTeX
+- Compile PDF locally
+- No template memory between sessions
+- ChatGPT Atlas wasn't ideal for full automation
+
+**Phase 2: SPA with Strands Agent** 🎯
+- Built a web app with preconfigured LaTeX template
+- AI agent understands resume structure
+- Automatic section merging and PDF compilation
+- Reusable workflow with template memory
+
+**Phase 3: Bottleneck Identified (Issue #6)** ⚠️
+- Tab switching between job boards and Resume Tailor
+- Manual copy-paste of job descriptions
+- ~50% efficiency loss from context switching
+
+**Phase 4: Chrome Extension Solution** 🚀
+- Auto-scrapes job descriptions from LinkedIn/Indeed
+- Side panel stays open while browsing jobs
+- Zero context switches, zero copy-paste
+- Download directly without leaving job page
+- **Result: ~50-85% time saved per application**
+
+📖 **Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
+
 ---
 
 ## Features
@@ -225,6 +257,62 @@ The web UI provides a complete workflow for resume tailoring and cover letter ge
 - **Smooth Progress Animation** – Percentage-based progress with fluid animations
 - **Auto-scroll Logs** – Terminal output automatically scrolls to show latest content
 - **Responsive Design** – Works on desktop, tablet, and mobile devices
+
+---
+
+## Architecture
+
+### System Overview
+
+```mermaid
+flowchart LR
+    subgraph Client["Client Layer"]
+        EXT[Chrome Extension<br/>Side Panel + Auto-scrape]
+        WEB[Web UI<br/>SPA Frontend]
+    end
+
+    subgraph Backend["Backend Layer"]
+        API[FastAPI Gateway<br/>/health /resumes /tailor /status /results]
+        ORCH[Resume Tailor Orchestrator<br/>Strands Agent + Tools]
+    end
+
+    subgraph AI["AI Layer"]
+        META[Metadata Extractor<br/>GPT-4o-mini]
+        TAILOR[Resume Tailor Agent<br/>GPT-5.1 / Bedrock]
+    end
+
+    subgraph Processing["Processing Layer"]
+        MERGE[Section Merger<br/>LaTeX-safe parsing]
+        PDF[PDF Compiler<br/>pdflatex]
+    end
+
+    subgraph Storage["Storage Layer"]
+        ORIG[(Original<br/>Templates)]
+        OUT[(Tailored<br/>Outputs)]
+    end
+
+    EXT -->|Job description| API
+    WEB -->|Job description| API
+    API -->|Submit job| ORCH
+    ORCH -->|Extract company/title| META
+    ORCH -->|Generate sections| TAILOR
+    TAILOR -->|AI output| MERGE
+    MERGE -->|.tex file| PDF
+    ORIG -->|Template| MERGE
+    PDF -->|.pdf file| OUT
+    OUT -->|Download| API
+    API -->|Results| EXT
+    API -->|Results| WEB
+```
+
+**Key Components:**
+- **Client Layer**: Chrome Extension (auto-scraping) + Web UI (manual input)
+- **Backend Layer**: FastAPI REST API + Strands Agent orchestrator
+- **AI Layer**: Dual AI setup - lightweight metadata extraction + full resume tailoring
+- **Processing Layer**: LaTeX-safe section merging + PDF compilation
+- **Storage Layer**: Original templates → Tailored outputs
+
+📖 **Detailed architecture documentation:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
