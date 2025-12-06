@@ -3,10 +3,72 @@
  * Handles all API communication with the backend
  */
 
-// Change this to your Mac Mini's IP when deploying remotely
-// Local: 'http://localhost:8000/api'
-// Mac Mini: 'http://10.10.10.2:8000/api'
-const API_BASE = 'http://10.10.10.2:8000/api';
+// Backend endpoints with automatic failover
+const API_ENDPOINTS = [
+  'http://localhost:8000/api',      // Local development
+  'http://10.10.10.2:8000/api',     // Mac Mini on local network
+];
+
+let API_BASE = null; // Will be set dynamically
+
+/**
+ * Find the first working API endpoint
+ */
+async function findWorkingEndpoint() {
+  for (const endpoint of API_ENDPOINTS) {
+    try {
+      const response = await fetch(`${endpoint.replace('/api', '')}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000), // 2 second timeout
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'healthy') {
+          console.log(`[API] Connected to: ${endpoint}`);
+          API_BASE = endpoint;
+          // Store for faster next time
+          await chrome.storage.local.set({ api_base: endpoint });
+          return endpoint;
+        }
+      }
+    } catch (error) {
+      console.log(`[API] ${endpoint} not reachable:`, error.message);
+    }
+  }
+
+  console.error('[API] No working endpoints found!');
+  return null;
+}
+
+/**
+ * Get the current API base URL, with automatic failover
+ */
+async function getApiBase() {
+  if (API_BASE) return API_BASE;
+
+  // Try to load from storage first
+  const stored = await chrome.storage.local.get('api_base');
+  if (stored.api_base) {
+    // Verify it's still working
+    try {
+      const response = await fetch(`${stored.api_base.replace('/api', '')}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000),
+      });
+      if (response.ok) {
+        API_BASE = stored.api_base;
+        console.log(`[API] Using cached endpoint: ${API_BASE}`);
+        return API_BASE;
+      }
+    } catch (error) {
+      console.log('[API] Cached endpoint failed, finding new one...');
+    }
+  }
+
+  // Find a working endpoint
+  return await findWorkingEndpoint();
+}
 
 /**
  * Message handler - receives messages from popup
@@ -60,7 +122,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  */
 async function getResumes() {
   try {
-    const response = await fetch(`${API_BASE}/resumes`);
+    const apiBase = await getApiBase();
+    if (!apiBase) {
+      throw new Error('No backend server available');
+    }
+
+    const response = await fetch(`${apiBase}/resumes`);
 
     if (!response.ok) {
       throw new Error(`Failed to load resumes: ${response.status}`);
@@ -79,7 +146,12 @@ async function getResumes() {
  */
 async function submitTailorJob(data) {
   try {
-    const response = await fetch(`${API_BASE}/tailor`, {
+    const apiBase = await getApiBase();
+    if (!apiBase) {
+      throw new Error('No backend server available');
+    }
+
+    const response = await fetch(`${apiBase}/tailor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -112,7 +184,12 @@ async function submitTailorJob(data) {
  */
 async function checkJobStatus(jobId) {
   try {
-    const response = await fetch(`${API_BASE}/jobs/${jobId}/status`);
+    const apiBase = await getApiBase();
+    if (!apiBase) {
+      throw new Error('No backend server available');
+    }
+
+    const response = await fetch(`${apiBase}/jobs/${jobId}/status`);
 
     if (response.status === 404) {
       throw new Error('Job not found. It may have expired.');
