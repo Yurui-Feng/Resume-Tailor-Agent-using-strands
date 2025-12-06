@@ -33,9 +33,11 @@ app = FastAPI(
 
 
 # Add CORS middleware
+# Note: Chrome extension origins need regex matching since wildcards don't work
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"chrome-extension://[a-z]{32}",  # Match Chrome extension IDs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

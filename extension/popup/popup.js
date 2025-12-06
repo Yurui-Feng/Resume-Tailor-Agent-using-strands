@@ -178,6 +178,9 @@ async function init() {
   // Setup event listeners
   setupEventListeners();
 
+  // Update dynamic links to use current API endpoint
+  await updateDynamicLinks();
+
   // Start URL polling for SPA navigation detection
   startUrlPolling();
 }
@@ -265,7 +268,7 @@ async function loadResumes() {
   } catch (error) {
     console.error('Failed to load resumes:', error);
     elements.resumeSelect.innerHTML = '<option value="">Failed to load resumes</option>';
-    showError('Could not connect to backend. Make sure the server is running at http://localhost:8000');
+    showError('Could not connect to backend. Make sure the server is running.');
   }
 }
 
@@ -730,7 +733,7 @@ function appendLogs(logs) {
 /**
  * Show results
  */
-function showResults(result) {
+async function showResults(result) {
   console.log('showResults called with:', result);
 
   elements.resultCompany.textContent = result.company || '-';
@@ -746,23 +749,25 @@ function showResults(result) {
   const texFilename = result.tex_path.split('\\').pop().split('/').pop();
   const resultId = texFilename.replace('.tex', '');
 
+  // Get dynamic API base
+  const apiBase = await getApiBase();
+  const baseUrl = apiBase.replace('/api', ''); // Remove /api suffix
+
   // Use the correct API endpoints
-  const texUrl = `http://localhost:8000/api/results/${resultId}/tex`;
-  const pdfUrl = result.pdf_path ? `http://localhost:8000/api/results/${resultId}/pdf` : null;
+  const texUrl = `${baseUrl}/api/results/${resultId}/tex`;
+  const pdfUrl = result.pdf_path ? `${baseUrl}/api/results/${resultId}/pdf` : null;
 
   console.log('Download URLs:', { texUrl, pdfUrl });
   console.log('Result ID:', resultId);
 
-  // Set download attributes for .tex
-  elements.downloadTexBtn.setAttribute('href', texUrl);
-  elements.downloadTexBtn.setAttribute('download', `${resultId}.tex`);
-  elements.downloadTexBtn.setAttribute('target', '_blank');
+  // Setup download buttons with Chrome Downloads API to bypass insecure download warnings
+  // Remove href attributes to prevent default link behavior
+  elements.downloadTexBtn.removeAttribute('href');
+  elements.downloadTexBtn.onclick = () => downloadFile(texUrl, `${resultId}.tex`);
 
-  // Set download attributes for .pdf if available
   if (pdfUrl) {
-    elements.downloadPdfBtn.setAttribute('href', pdfUrl);
-    elements.downloadPdfBtn.setAttribute('download', `${resultId}.pdf`);
-    elements.downloadPdfBtn.setAttribute('target', '_blank');
+    elements.downloadPdfBtn.removeAttribute('href');
+    elements.downloadPdfBtn.onclick = () => downloadFile(pdfUrl, `${resultId}.pdf`);
     elements.downloadPdfBtn.style.display = '';
   } else {
     elements.downloadPdfBtn.style.display = 'none';
@@ -771,6 +776,32 @@ function showResults(result) {
   console.log('Download buttons configured successfully');
 
   showView('resultsView');
+}
+
+/**
+ * Download file using Chrome Downloads API (bypasses insecure download warnings)
+ */
+async function downloadFile(url, filename) {
+  try {
+    console.log(`Downloading file: ${filename} from ${url}`);
+
+    // Use Chrome Downloads API
+    chrome.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: true  // Prompt user for save location
+    }, (downloadId) => {
+      if (chrome.runtime.lastError) {
+        console.error('Download failed:', chrome.runtime.lastError);
+        showError(`Download failed: ${chrome.runtime.lastError.message}`);
+      } else {
+        console.log(`Download started with ID: ${downloadId}`);
+      }
+    });
+  } catch (error) {
+    console.error('Error initiating download:', error);
+    showError(`Failed to download ${filename}: ${error.message}`);
+  }
 }
 
 /**
@@ -863,6 +894,47 @@ function sendMessage(message) {
       }
     });
   });
+}
+
+/**
+ * Get the dynamic API base URL from service worker
+ */
+async function getApiBase() {
+  try {
+    const response = await sendMessage({ type: 'GET_API_BASE' });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+    return response.apiBase || 'http://localhost:8000/api';
+  } catch (error) {
+    console.error('Failed to get API base:', error);
+    return 'http://localhost:8000/api'; // Fallback
+  }
+}
+
+/**
+ * Update HTML links to use dynamic API endpoint
+ */
+async function updateDynamicLinks() {
+  try {
+    const apiBase = await getApiBase();
+    const baseUrl = apiBase.replace('/api', '');
+
+    // Update "Open Full App" link
+    const openAppLink = document.querySelector('a[href^="http://localhost:8000"]');
+    if (openAppLink && !openAppLink.id) {  // Don't update viewResultsBtn here
+      openAppLink.setAttribute('href', baseUrl);
+      console.log('Updated "Open Full App" link to:', baseUrl);
+    }
+
+    // Update "View Results" button
+    if (elements.viewResultsBtn) {
+      elements.viewResultsBtn.setAttribute('href', baseUrl);
+      console.log('Updated "View Results" link to:', baseUrl);
+    }
+  } catch (error) {
+    console.error('Failed to update dynamic links:', error);
+  }
 }
 
 // Initialize on load

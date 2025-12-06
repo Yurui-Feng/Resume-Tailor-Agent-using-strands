@@ -143,6 +143,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (message.type === 'GET_API_BASE') {
+    getApiBase()
+      .then(apiBase => sendResponse({ success: true, apiBase }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 /**
