@@ -17,7 +17,7 @@ graph LR
     P2 -->|"Issue #6<br/>Tab switching"| P3
     P3 -->|"Auto-scrape<br/>Side panel"| P4
 
-    P4 -.->|"⏱️ 50-70%<br/>faster"| RESULT["✨ Zero context<br/>switches"]
+    P4 -.->|"⏱ 50-70%<br/>faster"| RESULT[" Zero context<br/>switches"]
 
     style P1 fill:#ffe0e0
     style P2 fill:#e0ffe0
@@ -85,7 +85,7 @@ Timing assumes a typical 1-2 page job post; longer descriptions will take more t
 
 </details>
 
-ദ്ദി ˉ͈̀꒳ˉ͈́ )✧ **Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
+**Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
@@ -176,7 +176,7 @@ This application works best with structured LaTeX resumes that use:
 - **Processing**: LaTeX merger + PDF compiler
 - **Storage**: Templates → Outputs
 
-ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧ **Full details:** [ARCHITECTURE.md](ARCHITECTURE.md)
+ **Full details:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
@@ -283,4 +283,4 @@ Customize AI models in `backend/config.py` (defaults: GPT-5.1 for tailoring, GPT
 
 ---
 
-**Built with [Strands Agents SDK](https://strandsagents.com)** | ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧
+**Built with [Strands Agents SDK](https://strandsagents.com)**
