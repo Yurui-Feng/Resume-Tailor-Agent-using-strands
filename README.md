@@ -6,6 +6,53 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 
 ### Evolution from Manual ChatGPT to Automated Extension
 
+```mermaid
+graph LR
+    P1["Phase 1<br/>ChatGPT Manual<br/>(╥﹏╥)"]
+    P2["Phase 2<br/>SPA with Agent<br/>(˶ᵔ ᵕ ᵔ˶)"]
+    P3["Phase 3<br/>Bottleneck Found<br/>( ꩜ ᯅ ꩜;)"]
+    P4["Phase 4<br/>Chrome Extension<br/>♡〜٩(˃▿˂)۶〜♡"]
+
+    P1 -->|"Automated<br/>LaTeX + PDF"| P2
+    P2 -->|"Issue #6<br/>Tab switching"| P3
+    P3 -->|"Auto-scrape<br/>Side panel"| P4
+
+    P4 -.->|"⏱️ 50-85%<br/>faster"| RESULT["✨ Zero context<br/>switches"]
+
+    style P1 fill:#ffe0e0
+    style P2 fill:#e0ffe0
+    style P3 fill:#ffffcc
+    style P4 fill:#e0ffe0
+    style RESULT fill:#d0ffd0
+```
+
+**Before vs After:**
+
+```
+BEFORE (Manual ChatGPT):                    AFTER (Chrome Extension):
+┌────────────────────────────────┐         ┌────────────────────────────────┐
+│ 1. Open ChatGPT        ⏱️ 1min │         │ 1. Click extension     ⏱️ 5sec │
+│ 2. Paste resume        ⏱️ 1min │         │ 2. Auto-scrapes job    ⏱️ 1sec │
+│ 3. Paste job desc      ⏱️ 1min │         │ 3. Click "Tailor"      ⏱️ 1min │
+│ 4. Copy AI output      ⏱️ 2min │         │ 4. Download PDF        ⏱️ 5sec │
+│ 5. Update LaTeX        ⏱️ 3min │         └────────────────────────────────┘
+│ 6. Compile PDF         ⏱️ 1min │         Total: ~1.5 minutes
+└────────────────────────────────┘
+Total: ~9 minutes
+```
+
+**Efficiency Gains:**
+
+| Phase | What Changed | Time per Application |
+|-------|--------------|---------------------|
+| 1️⃣ ChatGPT | Manual prompting every time | 😓 ~9 min |
+| 2️⃣ SPA | Automated LaTeX + PDF | 😊 ~4 min |
+| 3️⃣ Bottleneck | Identified tab-switching issue | - |
+| 4️⃣ Extension | Auto-scrape + side panel | 🎉 ~1.5 min |
+
+<details>
+<summary>📖 View detailed phase breakdown</summary>
+
 **Phase 1: Manual ChatGPT Workflow** (╥﹏╥)
 - Open ChatGPT for every job application
 - Paste entire LaTeX resume template every time
@@ -31,6 +78,8 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 - Zero context switches, zero copy-paste
 - Download directly without leaving job page
 - **Result: ~50-85% time saved per application**
+
+</details>
 
 ദ്ദി ˉ͈̀꒳ˉ͈́ )✧ **Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
 
