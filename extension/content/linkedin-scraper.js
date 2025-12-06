@@ -45,13 +45,14 @@ async function scrapeLinkedInJob() {
     // LinkedIn job description container
     // Common selectors (LinkedIn updates their classes frequently)
     const descriptionSelectors = [
+      '#job-details',                    // Stable ID selector - most reliable
       '.show-more-less-html__markup',
       '.jobs-description__content',
       '.jobs-box__html-content',
       '.jobs-description-content__text',
       '.description__text',
       '[class*="jobs-description"]',
-      '[class*="job-details"]'
+      '[id*="job-details"]'              // ID contains pattern
     ];
 
     let descriptionElement = null;
