@@ -85,6 +85,14 @@ Total: ~9 minutes
 
 ---
 
+## Demo
+
+https://github.com/user-attachments/assets/demo.mp4
+
+**See it in action:** The Chrome Extension automatically scrapes job descriptions from LinkedIn/Indeed, tailors your resume in real-time, and downloads the PDF—all without leaving the job posting page.
+
+---
+
 ## Features
 
 - **Smart Resume Tailoring** – AI rewrites your Professional Summary, Technical Proficiencies, and Experience sections to match job requirements
