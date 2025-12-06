@@ -97,3 +97,8 @@ Desktop.ini
 
 # Windows command artifacts
 nul
+
+# Deployment documentation (contains network-specific configuration)
+DEPLOYMENT.md
+DEPLOYMENT_QUICKSTART.md
+SETUP_SUMMARY.md
