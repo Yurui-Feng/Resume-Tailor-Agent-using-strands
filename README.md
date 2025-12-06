@@ -6,7 +6,7 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 
 ### Evolution from Manual ChatGPT to Automated Extension
 
-**Phase 1: Manual ChatGPT Workflow** 😓
+**Phase 1: Manual ChatGPT Workflow** (╥﹏╥)
 - Open ChatGPT for every job application
 - Paste entire LaTeX resume template every time
 - Manually copy AI-generated sections back into LaTeX
@@ -14,25 +14,25 @@ AI-powered resume and cover letter customization using [Strands Agents SDK](http
 - No template memory between sessions
 - ChatGPT Atlas wasn't ideal for full automation
 
-**Phase 2: SPA with Strands Agent** 🎯
+**Phase 2: SPA with Strands Agent** (˶ᵔ ᵕ ᵔ˶)
 - Built a web app with preconfigured LaTeX template
 - AI agent understands resume structure
 - Automatic section merging and PDF compilation
 - Reusable workflow with template memory
 
-**Phase 3: Bottleneck Identified (Issue #6)** ⚠️
+**Phase 3: Bottleneck Identified (Issue #6)** ( ꩜ ᯅ ꩜;)
 - Tab switching between job boards and Resume Tailor
 - Manual copy-paste of job descriptions
 - ~50% efficiency loss from context switching
 
-**Phase 4: Chrome Extension Solution** 🚀
+**Phase 4: Chrome Extension Solution** ♡〜٩(˃▿˂)۶〜♡
 - Auto-scrapes job descriptions from LinkedIn/Indeed
 - Side panel stays open while browsing jobs
 - Zero context switches, zero copy-paste
 - Download directly without leaving job page
 - **Result: ~50-85% time saved per application**
 
-📖 **Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
+ദ്ദി ˉ͈̀꒳ˉ͈́ )✧ **Full architecture details:** See [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
@@ -157,61 +157,21 @@ python -m uvicorn backend.main:app --reload
 
 ## Chrome Extension Usage
 
-The Chrome extension eliminates the workflow bottleneck of switching between job boards and the Resume Tailor app.
+**Quick Start:**
+1. Load extension in Chrome (see [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md))
+2. Browse to LinkedIn/Indeed job posting
+3. Click extension icon → Job auto-scrapes
+4. Select resume → Click "Tailor Resume"
+5. Download PDF directly from side panel
 
-### Features
-- **Side Panel Interface** – Stays open while you browse job postings
-- **Company & Title Fields** – Optional fields for company name and job position (auto-filled from scraper) (NEW!)
-- **Automatic Job Monitoring** – Detects when you navigate to a new job posting and auto-scrapes with 1s delay (NEW!)
-- **Manual Re-scraping** – Button to refresh job posting content on demand (NEW!)
-- **Initial Auto-Scraping** – Automatically fills job descriptions from LinkedIn and Indeed on open
-- **Smart Metadata Extraction** – Extracts company name and job title from job postings
-- **In-Panel Progress** – Watch real-time progress with streaming AI output
-- **Direct Downloads** – Download .tex and .pdf files without leaving the job page
-- **Persistent Preferences** – Remembers your last-used resume and settings
+**Key Features:**
+- Auto-scrapes job descriptions, company names, and titles
+- Side panel stays open while browsing multiple jobs
+- Detects job navigation and auto-scrapes new postings (1s delay)
+- Direct downloads without leaving the job page
+- Supports LinkedIn (`*.linkedin.com/jobs/*`) and Indeed (`*.indeed.com/viewjob*`)
 
-### Supported Job Boards
-- **LinkedIn Jobs** – `*.linkedin.com/jobs/*`
-- **Indeed** – `*.indeed.com/viewjob*`
-- **Any Other Site** – Manual paste works everywhere
-
-### Basic Workflow
-1. Navigate to a job posting on LinkedIn or Indeed
-2. Click the Resume Tailor extension icon in Chrome toolbar
-3. Job description, company name, and title auto-fill instantly
-4. **(Optional)** Manually edit company/title fields or leave empty for AI auto-detection
-5. **Browse to another job** → Automatically scrapes the new posting after 1 second!
-6. Select your resume from the dropdown
-7. Configure options (include experience, generate PDF)
-8. Click "Tailor Resume"
-9. Watch progress bar and streaming AI logs
-10. Download .tex and .pdf files when complete
-11. Click "Tailor Another Resume" → Auto-scrapes current page again
-
-### Smart Scraping Behavior
-- **On Extension Open** – Automatically scrapes current LinkedIn/Indeed job (description + company + title)
-- **On Navigation** – Detects when you click a different job, waits 1 second for page load, then auto-scrapes
-- **Manual Button** – "Re-scrape Job Posting" button for manual refresh
-- **After Completion** – "Tailor Another Resume" auto-scrapes the current page
-- **Debounced Scraping** – Rapid navigation only triggers one scrape (prevents duplicate requests)
-- **Metadata Extraction** – Company name and job title extracted from page structure
-
-### Installation
-See [extension/HOW_TO_LOAD.md](extension/HOW_TO_LOAD.md) for detailed visual instructions.
-
-### Time Savings
-**Before:** Find job → Copy text → Switch tab → Paste → Manually type company/title → Configure → Download → Repeat
-**After (NEW!):** Find job → **Company, title & description auto-fill** → Download → **Click next job → Auto-scrapes!**
-
-**Workflow improvements:**
-- **No manual data entry** – Company, title, and description extracted automatically
-- **No manual scraping** – Navigate between jobs freely, extension keeps up (with smart 1s delay)
-- **No tab switching** – Side panel stays open while browsing
-- **No copy/paste** – Automatic extraction from LinkedIn/Indeed
-- **Batch processing** – Tailor multiple resumes without closing the extension
-- **Accurate metadata** – Scraped company/title override AI extraction for precision
-
-**Estimated time saved:** ~60-70% per application, ~80-85% when processing multiple jobs
+**Time Saved:** ~60-85% per application (zero tab switching, zero copy-paste)
 
 ---
 
@@ -262,105 +222,32 @@ The web UI provides a complete workflow for resume tailoring and cover letter ge
 
 ## Architecture
 
-### System Overview
+![System Architecture](Diagram.png)
 
-```mermaid
-flowchart LR
-    subgraph Client["Client Layer"]
-        EXT[Chrome Extension<br/>Side Panel + Auto-scrape]
-        WEB[Web UI<br/>SPA Frontend]
-    end
+**5-Layer Architecture:**
+- **Client**: Chrome Extension (auto-scrape) + Web UI
+- **Backend**: FastAPI + Strands Agent orchestrator
+- **AI**: GPT-4o-mini (metadata) + GPT-5.1 (tailoring)
+- **Processing**: LaTeX merger + PDF compiler
+- **Storage**: Templates → Outputs
 
-    subgraph Backend["Backend Layer"]
-        API[FastAPI Gateway<br/>/health /resumes /tailor /status /results]
-        ORCH[Resume Tailor Orchestrator<br/>Strands Agent + Tools]
-    end
-
-    subgraph AI["AI Layer"]
-        META[Metadata Extractor<br/>GPT-4o-mini]
-        TAILOR[Resume Tailor Agent<br/>GPT-5.1 / Bedrock]
-    end
-
-    subgraph Processing["Processing Layer"]
-        MERGE[Section Merger<br/>LaTeX-safe parsing]
-        PDF[PDF Compiler<br/>pdflatex]
-    end
-
-    subgraph Storage["Storage Layer"]
-        ORIG[(Original<br/>Templates)]
-        OUT[(Tailored<br/>Outputs)]
-    end
-
-    EXT -->|Job description| API
-    WEB -->|Job description| API
-    API -->|Submit job| ORCH
-    ORCH -->|Extract company/title| META
-    ORCH -->|Generate sections| TAILOR
-    TAILOR -->|AI output| MERGE
-    MERGE -->|.tex file| PDF
-    ORIG -->|Template| MERGE
-    PDF -->|.pdf file| OUT
-    OUT -->|Download| API
-    API -->|Results| EXT
-    API -->|Results| WEB
-```
-
-**Key Components:**
-- **Client Layer**: Chrome Extension (auto-scraping) + Web UI (manual input)
-- **Backend Layer**: FastAPI REST API + Strands Agent orchestrator
-- **AI Layer**: Dual AI setup - lightweight metadata extraction + full resume tailoring
-- **Processing Layer**: LaTeX-safe section merging + PDF compilation
-- **Storage Layer**: Original templates → Tailored outputs
-
-📖 **Detailed architecture documentation:** [ARCHITECTURE.md](ARCHITECTURE.md)
+ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧ **Full details:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
 ## How It Works
 
-### Resume Tailoring Workflow
+**Resume Tailoring:**
+1. **Metadata Extraction** (GPT-4o-mini) → Company/title from job posting
+2. **Section Extraction** → Parse LaTeX resume, preserve preamble
+3. **AI Generation** (GPT-5.1) → Rewrite sections to match job requirements
+4. **Section Merging** → Validate LaTeX syntax, merge new content
+5. **PDF Compilation** → `pdflatex` generates final PDF
 
-1. **Metadata Extraction** (`gpt-4o-mini`)
-   - Extracts company name and job title from posting
-   - Generates sanitized filename: `Company_Position.tex`
-
-2. **Section Extraction**
-   - Parses your original LaTeX resume
-   - Extracts only relevant sections (Summary, Skills, Experience)
-   - Preserves preamble and formatting macros
-
-3. **AI Generation** (`gpt-5.1`)
-   - Sends job posting + extracted sections to AI
-   - Streams generated text in real-time to UI
-   - Rewrites sections to match job requirements
-   - Progress updates: 40% → 90%
-
-4. **Section Merging**
-   - Replaces old sections with AI-generated content
-   - Validates LaTeX syntax (brace balancing)
-   - Preserves document structure
-
-5. **PDF Compilation** (optional)
-   - Runs `pdflatex` to generate PDF
-   - Automatic cleanup of auxiliary files
-   - Progress: 90% → 100%
-
-### Cover Letter Workflow
-
-1. **Context Gathering**
-   - Reads original or tailored resume for background
-   - Extracts contact information
-   - Reuses job metadata from resume tailoring
-
-2. **AI Generation** (`gpt-5.1`)
-   - Generates cover letter based on resume snapshot
-   - Streams output in real-time
-   - Creates both plain text and LaTeX versions
-
-3. **Multi-format Output**
-   - LaTeX file with professional formatting
-   - Plain text version for applications
-   - Optional PDF compilation
+**Cover Letter:**
+1. Read resume context + job metadata
+2. AI generates cover letter (GPT-5.1)
+3. Output: LaTeX (.tex), Plain text (.txt), PDF (.pdf)
 
 ---
 
