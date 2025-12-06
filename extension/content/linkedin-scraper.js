@@ -4,36 +4,30 @@
  */
 
 /**
- * Wait for element to appear in DOM using MutationObserver (more efficient for SPAs)
+ * Wait for element to appear in DOM using polling (more reliable for SPAs)
  */
 function waitForElement(selector, timeout = 15000) {
   return new Promise((resolve, reject) => {
-    // Try immediately first
-    const element = document.querySelector(selector);
-    if (element) {
-      resolve(element);
-      return;
-    }
+    const startTime = Date.now();
 
-    // Use MutationObserver to watch for DOM changes
-    const observer = new MutationObserver((mutations, obs) => {
+    const check = () => {
       const element = document.querySelector(selector);
       if (element) {
-        obs.disconnect();
+        console.log('Found element:', selector);
         resolve(element);
+        return;
       }
-    });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+      if (Date.now() - startTime > timeout) {
+        reject(new Error(`Element ${selector} not found within timeout`));
+        return;
+      }
 
-    // Timeout fallback
-    setTimeout(() => {
-      observer.disconnect();
-      reject(new Error('Element not found within timeout'));
-    }, timeout);
+      // Poll every 500ms
+      setTimeout(check, 500);
+    };
+
+    check();
   });
 }
 
@@ -46,6 +40,7 @@ async function scrapeLinkedInJob() {
     // Common selectors (LinkedIn updates their classes frequently)
     const descriptionSelectors = [
       '#job-details',                    // Stable ID selector - most reliable
+      '.jobs-description__container',   // Container that holds job details
       '.show-more-less-html__markup',
       '.jobs-description__content',
       '.jobs-box__html-content',
