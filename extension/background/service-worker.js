@@ -15,17 +15,29 @@ let API_BASE = null; // Will be set dynamically
  * Find the first working API endpoint
  */
 async function findWorkingEndpoint() {
+  console.log('[API] Searching for working endpoint...');
+
   for (const endpoint of API_ENDPOINTS) {
     try {
+      console.log(`[API] Trying: ${endpoint}`);
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
       const response = await fetch(`${endpoint.replace('/api', '')}/api/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(2000), // 2 second timeout
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
+        console.log(`[API] Health response from ${endpoint}:`, data);
+
         if (data.status === 'healthy') {
-          console.log(`[API] Connected to: ${endpoint}`);
+          console.log(`[API] ✓ Connected to: ${endpoint}`);
           API_BASE = endpoint;
           // Store for faster next time
           await chrome.storage.local.set({ api_base: endpoint });
@@ -33,11 +45,11 @@ async function findWorkingEndpoint() {
         }
       }
     } catch (error) {
-      console.log(`[API] ${endpoint} not reachable:`, error.message);
+      console.log(`[API] ✗ ${endpoint} failed:`, error.message);
     }
   }
 
-  console.error('[API] No working endpoints found!');
+  console.error('[API] ⚠ No working endpoints found!');
   return null;
 }
 
@@ -45,28 +57,44 @@ async function findWorkingEndpoint() {
  * Get the current API base URL, with automatic failover
  */
 async function getApiBase() {
-  if (API_BASE) return API_BASE;
+  console.log('[API] getApiBase() called, current API_BASE:', API_BASE);
+
+  if (API_BASE) {
+    console.log('[API] Returning cached API_BASE:', API_BASE);
+    return API_BASE;
+  }
 
   // Try to load from storage first
   const stored = await chrome.storage.local.get('api_base');
+  console.log('[API] Stored endpoint:', stored.api_base);
+
   if (stored.api_base) {
     // Verify it's still working
     try {
+      console.log('[API] Verifying stored endpoint:', stored.api_base);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
       const response = await fetch(`${stored.api_base.replace('/api', '')}/api/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(2000),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         API_BASE = stored.api_base;
-        console.log(`[API] Using cached endpoint: ${API_BASE}`);
+        console.log(`[API] ✓ Using cached endpoint: ${API_BASE}`);
         return API_BASE;
       }
     } catch (error) {
-      console.log('[API] Cached endpoint failed, finding new one...');
+      console.log('[API] Cached endpoint failed:', error.message);
     }
   }
 
   // Find a working endpoint
+  console.log('[API] Finding new endpoint...');
   return await findWorkingEndpoint();
 }
 
