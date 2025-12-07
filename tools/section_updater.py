@@ -97,6 +97,23 @@ def update_subtitle(latex_content: str, new_subtitle: str) -> str:
     Returns:
         LaTeX with updated subtitle
     """
+    # Trim: remove content after comma or dash to keep subtitle concise
+    for delimiter in [',', ' - ', ' – ', ' — ']:
+        if delimiter in new_subtitle:
+            new_subtitle = new_subtitle.split(delimiter)[0].strip()
+            break
+
+    # Escape LaTeX special characters
+    latex_escapes = {
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+    }
+    for char, escaped in latex_escapes.items():
+        new_subtitle = new_subtitle.replace(char, escaped)
+
     # Pattern: \def \subtitle {Old Title}
     pattern = r'\\def\s+\\subtitle\s+\{[^}]*\}'
     replacement = f'\\def \\subtitle {{{new_subtitle}}}'
