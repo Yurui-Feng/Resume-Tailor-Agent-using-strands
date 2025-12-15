@@ -1,0 +1,3 @@
+[submodule "apply-bot"]
+	path = apply-bot
+	url = https://github.com/Yurui-Feng/apply-bot.git
