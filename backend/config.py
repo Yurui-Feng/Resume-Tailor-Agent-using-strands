@@ -65,9 +65,18 @@ DEFAULT_COVER_LETTER_MODEL = DEFAULT_MAIN_MODEL  # Cover letter generation model
 ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
+    "http://localhost:3001",  # Apply-Bot Express backend
     "http://127.0.0.1:8000",
+    "http://127.0.0.1:3001",  # Apply-Bot Express backend (alternative)
     "http://10.10.10.2:8000",  # Mac Mini on local network
     "chrome-extension://*",  # Development: allow all Chrome extensions
+]
+
+# Apply-Bot integration settings
+APPLY_BOT_ORIGINS = [
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://apply-bot:3001",  # Docker network name
 ]
 
 # Job processing settings
