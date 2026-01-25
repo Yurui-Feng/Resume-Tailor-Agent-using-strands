@@ -181,3 +181,21 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
     detail: Optional[str] = Field(None, description="Detailed error information")
     type: Optional[str] = Field(None, description="Error type")
+
+
+class TailorSyncResponse(BaseModel):
+    """
+    Synchronous tailoring response for Apply-Bot integration.
+
+    This model is returned by /api/tailor-sync which waits for completion
+    instead of returning immediately with a job_id.
+    """
+    status: JobStatus = Field(..., description="Final job status (completed/failed)")
+    job_id: str = Field(..., description="Job identifier for reference")
+    company: str = Field(..., description="Extracted/provided company name")
+    position: str = Field(..., description="Extracted/provided job position")
+    pdf_url: Optional[str] = Field(None, description="URL to download PDF: /api/download/{job_id}/pdf")
+    tex_url: Optional[str] = Field(None, description="URL to download LaTeX: /api/download/{job_id}/tex")
+    cover_letter_pdf_url: Optional[str] = Field(None, description="URL to download cover letter PDF (if generated)")
+    error: Optional[str] = Field(None, description="Error message if status is failed")
+    processing_time_seconds: float = Field(..., description="Total processing time in seconds")

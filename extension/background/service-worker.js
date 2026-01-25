@@ -287,7 +287,7 @@ async function scrapeJobInMainWorld(tabId) {
             for (const selector of selectors) {
               const el = document.querySelector(selector);
               if (el && el.innerText && el.innerText.trim().length > 50) {
-                console.log(`[MAIN WORLD v4] Found element on attempt ${attempt + 1}:`, selector);
+                console.log(`[MAIN WORLD v5] Found element on attempt ${attempt + 1}:`, selector);
                 return { element: el, selector };
               }
             }
@@ -298,19 +298,49 @@ async function scrapeJobInMainWorld(tabId) {
           return null;
         };
 
-        console.log('[MAIN WORLD v4] Starting scrape...');
-        console.log('[MAIN WORLD v4] URL:', window.location.href);
+        // Helper to find and click the "more" button using stable selectors
+        const clickMoreButtonIfExists = async () => {
+          // Strategy 1: Find by text content (most stable - class names are obfuscated)
+          const allSpans = document.querySelectorAll('span');
+          for (const span of allSpans) {
+            const text = span.textContent || '';
+            if (text.trim() === 'more' || (text.includes('…') && text.includes('more'))) {
+              console.log('[MAIN WORLD v5] Found "more" button, clicking...');
+              const clickTarget = span.closest('button') || span.closest('[role="button"]') || span;
+              clickTarget.click();
+              await new Promise(r => setTimeout(r, 500));
+              return true;
+            }
+          }
+
+          // Strategy 2: Fallback to aria/class selectors
+          const showMoreBtn = document.querySelector(
+            'button[aria-expanded="false"], [class*="show-more"], [class*="see-more"]'
+          );
+          if (showMoreBtn) {
+            console.log('[MAIN WORLD v5] Found show-more button via selector, clicking...');
+            showMoreBtn.click();
+            await new Promise(r => setTimeout(r, 500));
+            return true;
+          }
+
+          return false;
+        };
+
+        console.log('[MAIN WORLD v5] Starting scrape...');
+        console.log('[MAIN WORLD v5] URL:', window.location.href);
 
         // Extract currentJobId from URL
         const urlMatch = window.location.href.match(/currentJobId=(\d+)/);
         const currentJobId = urlMatch ? urlMatch[1] : null;
-        console.log('[MAIN WORLD v4] Target job ID:', currentJobId);
+        console.log('[MAIN WORLD v5] Target job ID:', currentJobId);
 
         // Quick check if page has job elements (popup.js handles reload if needed)
         const hasJobElements = document.querySelector('#job-details, [class*="jobs-description"], .jobs-search__job-details');
-        console.log('[MAIN WORLD v4] Has job elements:', !!hasJobElements);
+        console.log('[MAIN WORLD v5] Has job elements:', !!hasJobElements);
 
         const descriptionSelectors = [
+          '[data-testid="expandable-text-box"]',  // LinkedIn's expandable text box (new UI)
           '#job-details',
           '.jobs-description__container',
           '.show-more-less-html__markup',
@@ -324,20 +354,30 @@ async function scrapeJobInMainWorld(tabId) {
         for (const selector of descriptionSelectors) {
           const el = document.querySelector(selector);
           if (el && el.innerText && el.innerText.trim().length > 50) {
-            console.log('[MAIN WORLD v4] Content already present:', selector);
+            console.log('[MAIN WORLD v5] Content already present:', selector);
             result = { element: el, selector };
             break;
           }
         }
 
-        // If no content, try to trigger LinkedIn to load it
+        // If no content or content is short (truncated), try to expand
+        if (!result || (result?.element?.innerText?.trim().length < 300)) {
+          console.log('[MAIN WORLD v5] Content missing or truncated, attempting to expand...');
+          const clickedMore = await clickMoreButtonIfExists();
+          if (clickedMore) {
+            // Re-poll for expanded content
+            result = await pollForElement(descriptionSelectors, 15, 300);
+          }
+        }
+
+        // If still no content, try to trigger LinkedIn to load it
         if (!result && currentJobId) {
-          console.log('[MAIN WORLD v4] No content yet, trying to trigger load...');
+          console.log('[MAIN WORLD v5] No content yet, trying to trigger load...');
 
           // Find and click the job card in the list that matches our job ID
           // This forces LinkedIn's React to render the job details
           const jobCards = document.querySelectorAll('[data-job-id], .jobs-search-results__list-item, .job-card-container');
-          console.log('[MAIN WORLD v4] Found job cards:', jobCards.length);
+          console.log('[MAIN WORLD v5] Found job cards:', jobCards.length);
 
           let clickedCard = false;
           for (const card of jobCards) {
@@ -345,7 +385,7 @@ async function scrapeJobInMainWorld(tabId) {
             const link = card.querySelector('a[href*="' + currentJobId + '"]') ||
                         (card.getAttribute('data-job-id') === currentJobId ? card : null);
             if (link || card.innerHTML.includes(currentJobId)) {
-              console.log('[MAIN WORLD v4] Found matching job card, clicking...');
+              console.log('[MAIN WORLD v5] Found matching job card, clicking...');
               // Find clickable element
               const clickTarget = card.querySelector('a') || card;
               clickTarget.click();
@@ -357,7 +397,7 @@ async function scrapeJobInMainWorld(tabId) {
 
           // If we couldn't find a card to click, try scrolling to trigger lazy load
           if (!clickedCard) {
-            console.log('[MAIN WORLD v4] No matching card found, trying scroll trigger...');
+            console.log('[MAIN WORLD v5] No matching card found, trying scroll trigger...');
             const detailPane = document.querySelector('.jobs-search__job-details, .scaffold-layout__detail, .job-view-layout');
             if (detailPane) {
               detailPane.scrollIntoView({ behavior: 'instant' });
@@ -377,9 +417,11 @@ async function scrapeJobInMainWorld(tabId) {
         let description = null;
         if (result) {
           description = result.element.innerText.trim();
-          console.log('[MAIN WORLD v4] Found description, length:', description.length);
+          // Remove trailing "… more" or "...more" button text if present
+          description = description.replace(/[\u2026\.]{1,3}\s*more\s*$/i, '').trim();
+          console.log('[MAIN WORLD v5] Found description, length:', description.length);
         } else {
-          console.log('[MAIN WORLD v4] No description found after polling');
+          console.log('[MAIN WORLD v5] No description found after polling');
         }
 
         // Get title
@@ -415,7 +457,7 @@ async function scrapeJobInMainWorld(tabId) {
           }
         }
 
-        console.log('[MAIN WORLD v4] Result:', { hasDescription: !!description, descLen: description?.length, title, company });
+        console.log('[MAIN WORLD v5] Result:', { hasDescription: !!description, descLen: description?.length, title, company });
         return { description, title, company };
       }
     });

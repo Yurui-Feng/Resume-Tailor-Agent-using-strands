@@ -23,6 +23,7 @@ from backend.api.models import (
     CoverLetterResult,
     CoverLetterInfo,
     LogEntry,
+    TailorSyncResponse,
 )
 from backend.config import (
     ORIGINAL_RESUME_DIR,
@@ -31,6 +32,7 @@ from backend.config import (
     API_VERSION,
     HAS_OPENAI,
     HAS_BEDROCK,
+    JOB_TIMEOUT,
 )
 from backend.services.resume_service import resume_service
 from backend.services.cover_letter_service import cover_letter_service
@@ -102,6 +104,151 @@ async def tailor_resume(request: TailorRequest, background_tasks: BackgroundTask
         status=JobStatus.PENDING,
         created_at=datetime.now(),
         message="Job submitted successfully. Check status at /api/jobs/{job_id}/status"
+    )
+
+
+@router.post("/tailor-sync", response_model=TailorSyncResponse)
+async def tailor_resume_sync(request: TailorRequest):
+    """
+    Synchronous resume tailoring endpoint for Apply-Bot integration.
+
+    This endpoint blocks until the tailoring job completes (or times out).
+    Use this for integrations that need immediate results rather than polling.
+
+    - **job_posting**: Full text of the job posting (min 50 characters)
+    - **original_resume_id**: ID of original resume (e.g., "AI_engineer")
+    - **include_experience**: Whether to update Professional Experience section
+    - **render_pdf**: Whether to compile PDF from LaTeX
+    - **company_name**: Optional user-provided company name
+    - **desired_title**: Optional user-provided resume title
+
+    Returns completed result with download URLs, or error if failed.
+    Timeout: 5 minutes (JOB_TIMEOUT).
+    """
+    import asyncio
+    import time
+
+    start_time = time.time()
+
+    # Validate resume exists
+    resume_path = ORIGINAL_RESUME_DIR / f"{request.original_resume_id}.tex"
+    if not resume_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Resume '{request.original_resume_id}' not found. Available resumes: {list_resume_ids()}"
+        )
+
+    # Create job
+    job_id = resume_service.create_job(
+        job_posting=request.job_posting,
+        original_resume_id=request.original_resume_id,
+        include_experience=request.include_experience,
+        render_pdf=request.render_pdf,
+        company_name=request.company_name,
+        desired_title=request.desired_title
+    )
+
+    # Run processing in a thread to not block the event loop
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, resume_service.process_job, job_id)
+
+    # Get final status
+    job = resume_service.get_job_status(job_id)
+    processing_time = time.time() - start_time
+
+    if job["status"] == JobStatus.COMPLETED and job["result"]:
+        result = job["result"]
+        return TailorSyncResponse(
+            status=JobStatus.COMPLETED,
+            job_id=job_id,
+            company=result.get("company", "Unknown"),
+            position=result.get("position", "Unknown"),
+            pdf_url=f"/api/download/{job_id}/pdf" if result.get("pdf_path") else None,
+            tex_url=f"/api/download/{job_id}/tex" if result.get("tex_path") else None,
+            cover_letter_pdf_url=None,  # Cover letter generated separately
+            error=None,
+            processing_time_seconds=round(processing_time, 2)
+        )
+    else:
+        return TailorSyncResponse(
+            status=JobStatus.FAILED,
+            job_id=job_id,
+            company=job.get("company_name") or "Unknown",
+            position=job.get("desired_title") or "Unknown",
+            pdf_url=None,
+            tex_url=None,
+            cover_letter_pdf_url=None,
+            error=job.get("error") or "Job failed without error message",
+            processing_time_seconds=round(processing_time, 2)
+        )
+
+
+@router.get("/download/{job_id}/pdf")
+async def download_job_pdf(job_id: str):
+    """
+    Download PDF for a completed tailoring job.
+
+    This endpoint looks up the job result and returns the PDF file.
+    Used by Apply-Bot integration for downloading tailored resumes.
+
+    - **job_id**: Job identifier from /api/tailor or /api/tailor-sync
+    """
+    job = resume_service.get_job_status(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if job["status"] != JobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job {job_id} is not completed. Status: {job['status']}"
+        )
+
+    result = job.get("result")
+    if not result or not result.get("pdf_path"):
+        raise HTTPException(status_code=404, detail=f"No PDF available for job {job_id}")
+
+    pdf_path = Path(result["pdf_path"])
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail=f"PDF file not found on disk")
+
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=pdf_path.name
+    )
+
+
+@router.get("/download/{job_id}/tex")
+async def download_job_tex(job_id: str):
+    """
+    Download LaTeX source for a completed tailoring job.
+
+    - **job_id**: Job identifier from /api/tailor or /api/tailor-sync
+    """
+    job = resume_service.get_job_status(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if job["status"] != JobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job {job_id} is not completed. Status: {job['status']}"
+        )
+
+    result = job.get("result")
+    if not result or not result.get("tex_path"):
+        raise HTTPException(status_code=404, detail=f"No LaTeX file available for job {job_id}")
+
+    tex_path = Path(result["tex_path"])
+    if not tex_path.exists():
+        raise HTTPException(status_code=404, detail=f"LaTeX file not found on disk")
+
+    return FileResponse(
+        path=tex_path,
+        media_type="application/x-tex",
+        filename=tex_path.name
     )
 
 

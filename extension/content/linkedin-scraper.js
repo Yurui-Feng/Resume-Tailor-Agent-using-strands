@@ -25,8 +25,28 @@ function scrapeViaMainWorld() {
     // Inject script into the page's main world
     const script = document.createElement('script');
     script.textContent = `
-      (function() {
+      (async function() {
+        // Click "more" button if exists (uses text matching for stability)
+        const clickMoreButton = () => {
+          const spans = document.querySelectorAll('span');
+          for (const span of spans) {
+            const text = (span.textContent || '').trim();
+            if (text === 'more' || (text.includes('…') && text.includes('more'))) {
+              const clickTarget = span.closest('button') || span.closest('[role="button"]') || span;
+              clickTarget.click();
+              return true;
+            }
+          }
+          return false;
+        };
+
+        // Try to expand truncated content
+        if (clickMoreButton()) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+
         const selectors = [
+          '[data-testid="expandable-text-box"]',  // LinkedIn's expandable text box (new UI)
           '#job-details',
           '.jobs-description__container',
           '.show-more-less-html__markup',
@@ -42,7 +62,9 @@ function scrapeViaMainWorld() {
           descEl = document.querySelector(sel);
           if (descEl) {
             description = descEl.innerText.trim();
-            break;
+            // Remove trailing "… more" or "...more" button text if present
+            description = description.replace(/[\u2026\.]{1,3}\\s*more\\s*$/i, '').trim();
+            if (description.length > 50) break;  // Found substantial content
           }
         }
 
@@ -153,6 +175,7 @@ async function scrapeLinkedInJob() {
 
     // Fallback: try isolated world (in case CSP blocks script injection)
     const descriptionSelectors = [
+      '[data-testid="expandable-text-box"]',  // LinkedIn's expandable text box (new UI)
       '#job-details',
       '.jobs-description__container',
       '.show-more-less-html__markup',
@@ -186,7 +209,9 @@ async function scrapeLinkedInJob() {
       return null;
     }
 
-    const description = descriptionElement.innerText.trim();
+    let description = descriptionElement.innerText.trim();
+    // Remove trailing "… more" or "...more" button text if present
+    description = description.replace(/[\u2026\.]{1,3}\s*more\s*$/i, '').trim();
 
     // Get title
     let title = null;
