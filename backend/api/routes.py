@@ -93,7 +93,8 @@ async def tailor_resume(request: TailorRequest, background_tasks: BackgroundTask
         include_experience=request.include_experience,
         render_pdf=request.render_pdf,
         company_name=request.company_name,
-        desired_title=request.desired_title
+        desired_title=request.desired_title,
+        job_url=request.job_url
     )
 
     # Start processing in background

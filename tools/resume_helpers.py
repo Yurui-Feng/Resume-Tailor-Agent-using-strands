@@ -320,6 +320,49 @@ def generate_filename(
     return os.path.join(base_dir, filename)
 
 
+def save_job_posting_file(
+    job_text: str,
+    job_url: Optional[str],
+    company: str,
+    position: str,
+    output_dir: str = None
+) -> str:
+    """
+    Save job posting content to a text file alongside the tailored resume.
+
+    Args:
+        job_text: Full text of the job posting
+        job_url: URL of the job posting (optional, from browser extension)
+        company: Company name (for filename)
+        position: Job position (for filename)
+        output_dir: Output directory (defaults to DEFAULT_OUTPUT_DIR)
+
+    Returns:
+        Path to the saved job posting file
+    """
+    if output_dir is None:
+        output_dir = DEFAULT_OUTPUT_DIR
+
+    job_posting_path = generate_filename(
+        company=company,
+        position=position,
+        base_dir=output_dir,
+        extension="_job_posting.txt"
+    )
+
+    content_parts = []
+    if job_url:
+        content_parts.append(f"Source URL: {job_url}")
+        content_parts.append("")  # Blank line after URL
+    content_parts.append(job_text)
+
+    Path(job_posting_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(job_posting_path).write_text("\n".join(content_parts), encoding="utf-8")
+    logger.info(f"[OK] Job posting saved: {job_posting_path}")
+
+    return job_posting_path
+
+
 def compile_pdf(tex_file_path: str, cleanup: bool = True) -> str:
     """
     Compile LaTeX file to PDF using pdflatex.
@@ -973,7 +1016,8 @@ def tailor_resume_sections(
     render_pdf: bool = True,
     user_company: Optional[str] = None,
     user_title: Optional[str] = None,
-    progress_callback=None
+    progress_callback=None,
+    job_url: Optional[str] = None
 ) -> Dict[str, Optional[str]]:
     """
     Complete workflow: extract metadata, generate sections, merge, and optionally render PDF.
@@ -1155,6 +1199,15 @@ def tailor_resume_sections(
             pdf_path = pdf_result
             logger.info(f"[OK] PDF created: {Path(pdf_path).name}")
 
+    # 8.5 Save job posting file alongside the resume
+    job_posting_file_path = save_job_posting_file(
+        job_text=job_text,
+        job_url=job_url,
+        company=metadata["company"],
+        position=metadata["position"],
+        output_dir=str(Path(output_path).parent)
+    )
+
     # 9. Cleanup temporary job posting file
     try:
         os.unlink(job_posting_path)
@@ -1165,6 +1218,7 @@ def tailor_resume_sections(
     return {
         "tex_path": output_path,
         "pdf_path": pdf_path,
+        "job_posting_path": job_posting_file_path,
         "company": metadata["company"],
         "position": metadata["position"],
         "validation": merge_result

@@ -106,7 +106,8 @@ class ResumeService:
     def create_job(self, job_posting: str, original_resume_id: str,
                    include_experience: bool, render_pdf: bool,
                    company_name: Optional[str] = None,
-                   desired_title: Optional[str] = None) -> str:
+                   desired_title: Optional[str] = None,
+                   job_url: Optional[str] = None) -> str:
         """Create a new tailoring job"""
         job_id = str(uuid.uuid4())
 
@@ -123,6 +124,7 @@ class ResumeService:
             "render_pdf": render_pdf,
             "company_name": company_name,
             "desired_title": desired_title,
+            "job_url": job_url,
             "result": None,
             "error": None
         }
@@ -238,7 +240,8 @@ class ResumeService:
             render_pdf=job["render_pdf"],
             user_company=job.get("company_name"),
             user_title=job.get("desired_title"),
-            progress_callback=update_progress
+            progress_callback=update_progress,
+            job_url=job.get("job_url")
         )
 
         job["progress"] = 90

@@ -55,6 +55,11 @@ class TailorRequest(BaseModel):
         max_length=100,
         examples=["Senior ML Engineer", "Cloud & AI Software Engineer"]
     )
+    job_url: Optional[str] = Field(
+        default=None,
+        description="URL of the job posting (captured from browser)",
+        max_length=2000
+    )
 
 
 class CoverLetterRequest(BaseModel):

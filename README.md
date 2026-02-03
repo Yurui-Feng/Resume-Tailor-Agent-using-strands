@@ -105,6 +105,7 @@ See the Chrome Extension in action: automatically scraping job descriptions from
 - **Cover Letter Generation** – Automatically generates professional cover letters in LaTeX, PDF, and plain text formats
 - **Chrome Extension** – Tailor resumes directly from job posting pages without switching tabs (addresses [Issue #6](https://github.com/your-repo/issues/6))
 - **Auto-Scraping** – Automatically extracts job descriptions from LinkedIn and Indeed job pages
+- **Job Posting Archive** – Saves job posting text + source URL alongside each tailored resume for future reference
 - **Metadata Extraction** – Lightweight AI extracts company name and job title from job postings
 - **Real-time Progress** – Watch your documents being generated with smooth progress bars and streaming AI output
 - **Multi-format Output** – Get LaTeX source files (.tex), compiled PDFs, and plain text versions
@@ -242,9 +243,9 @@ Strands-agent/
 │
 ├── data/
 │   ├── original/                    # Your source resumes (.tex)
-│   ├── tailored_resumes/            # Generated tailored resumes
+│   ├── tailored_resumes/            # Generated resumes + job postings (*_job_posting.txt)
 │   ├── cover_letters/               # Generated cover letters
-│   └── job_postings/                # Job posting files (optional)
+│   └── job_postings/                # Job posting files (legacy)
 │
 ├── logs/                            # Application logs
 ├── Dockerfile                       # Docker image definition

@@ -6,6 +6,7 @@ Chrome extension for AI-powered resume tailoring. Streamlines your job applicati
 
 - **Browser Action Popup**: Quick access to resume tailoring from any page
 - **Auto-Scraping**: Automatically extracts job descriptions from LinkedIn and Indeed
+- **Job URL Capture**: Saves the source URL alongside each tailored resume for easy reference
 - **Real-Time Progress**: Watch your resume being generated with live progress updates
 - **In-Popup Results**: Download tailored resumes without leaving the job posting page
 - **Persistent Preferences**: Remembers your last-used resume and settings

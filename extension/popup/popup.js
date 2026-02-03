@@ -49,6 +49,7 @@ let statusCheckInterval = null;
 let currentProgress = 0;
 let targetProgress = 0;
 let lastScrapedJobId = null;  // Track last scraped LinkedIn job ID for auto-scrape
+let lastScrapedUrl = null;  // Track URL of last scraped job posting
 let urlPollingInterval = null;  // For detecting LinkedIn SPA navigation
 let lastCheckedUrl = null;  // Last URL we checked
 let hasReloadedForJobsPage = false;  // Track if we've already done a reload for this session
@@ -439,7 +440,9 @@ async function autoScrapeJob(isRetry = false) {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.url) {
         lastScrapedJobId = extractLinkedInJobId(tab.url);
+        lastScrapedUrl = tab.url;
         console.log('Updated lastScrapedJobId:', lastScrapedJobId);
+        console.log('Updated lastScrapedUrl:', lastScrapedUrl);
       }
 
       updateCharCount();
@@ -489,6 +492,13 @@ async function handleScrapeClick() {
       }
       if (response.title) {
         elements.desiredTitle.value = response.title;
+      }
+
+      // Capture URL for manual scrape too
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.url) {
+        lastScrapedUrl = tab.url;
+        console.log('Manual scrape - Updated lastScrapedUrl:', lastScrapedUrl);
       }
 
       updateCharCount();
@@ -569,6 +579,12 @@ async function handleSubmit() {
   }
   if (desiredTitle) {
     data.desired_title = desiredTitle;
+  }
+  if (lastScrapedUrl) {
+    data.job_url = lastScrapedUrl;
+    console.log('Sending job_url:', lastScrapedUrl);
+  } else {
+    console.log('Warning: lastScrapedUrl is null - URL will not be saved');
   }
 
   try {
