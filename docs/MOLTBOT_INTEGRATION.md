@@ -22,13 +22,15 @@ Moltbot can query this sheet to enrich interview email summaries with full appli
 | `job_id` | string | Unique identifier (UUID or backfill-{filename}) |
 | `company` | string | Company name |
 | `position` | string | Job title |
-| `applied_date` | ISO datetime | When the resume was created |
-| `job_url` | URL | Source job posting URL |
-| `resume_path` | path | Relative path to PDF (e.g., `data/tailored_resumes/...`) |
-| `job_posting_path` | path | Relative path to job posting text file |
+| `applied_date` | date | When the resume was created (YYYY-MM-DD) |
 | `status` | string | Application status: applied, interviewing, rejected, offer |
 | `notes` | string | Free-form notes (manually updated) |
 | `follow_up_date` | date | When to follow up (manually updated) |
+| `job_url` | URL | Source job posting URL |
+| `resume_path` | path | Relative path to PDF (e.g., `data/tailored_resumes/...`) |
+| `job_posting_path` | path | Relative path to job posting text file |
+
+*Note: Human-readable columns are first; technical paths are at the end.*
 
 ---
 

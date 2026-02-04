@@ -138,18 +138,18 @@ def _ensure_headers_exist():
 
     service = _get_sheets_service()
 
-    # Define expected headers
+    # Define expected headers (human-readable first, paths at end)
     headers = [
         'job_id',
         'company',
         'position',
         'applied_date',
-        'job_url',
-        'resume_path',
-        'job_posting_path',
         'status',
         'notes',
-        'follow_up_date'
+        'follow_up_date',
+        'job_url',
+        'resume_path',
+        'job_posting_path'
     ]
 
     # Check if first row exists
@@ -208,18 +208,23 @@ def append_job_to_sheet(job_data: dict) -> Optional[dict]:
         # Ensure headers exist on first call
         _ensure_headers_exist()
 
-        # Prepare row data in column order
+        # Format applied_date as just date (YYYY-MM-DD)
+        applied_date = job_data.get('applied_date', '')
+        if applied_date and 'T' in applied_date:
+            applied_date = applied_date.split('T')[0]
+
+        # Prepare row data in column order (human-readable first, paths at end)
         row = [
             job_data.get('job_id', ''),
             job_data.get('company', ''),
             job_data.get('position', ''),
-            job_data.get('applied_date', ''),
-            job_data.get('job_url', ''),
-            job_data.get('resume_path', ''),
-            job_data.get('job_posting_path', ''),
+            applied_date,
             job_data.get('status', 'applied'),
             job_data.get('notes', ''),
             job_data.get('follow_up_date', ''),
+            job_data.get('job_url', ''),
+            job_data.get('resume_path', ''),
+            job_data.get('job_posting_path', ''),
         ]
 
         # Append row to sheet
