@@ -27,6 +27,18 @@ import asyncio
 # Configure logger
 logger = logging.getLogger(__name__)
 
+
+class UnknownMetadataError(Exception):
+    """
+    Raised when LLM cannot extract required metadata (company/position) from job posting.
+
+    This exception signals that the user needs to provide the missing information manually
+    via the company_name and/or desired_title parameters.
+    """
+    def __init__(self, message: str, missing_fields: list):
+        super().__init__(message)
+        self.missing_fields = missing_fields
+
 # Import OUTPUT_DIR configuration
 try:
     from backend.config import OUTPUT_DIR, COVER_LETTER_OUTPUT_DIR, AGENT_CALL_TIMEOUT
@@ -1074,7 +1086,29 @@ def tailor_resume_sections(
 
     logger.info(f"   Company: {metadata['company']}")
     logger.info(f"   Position: {metadata['position']}")
-    # Blank line removed
+
+    # Validate extracted metadata - stop if position is unknown
+    missing_fields = []
+    if "unknown" in metadata['position'].lower():
+        missing_fields.append("position")
+    if "unknown" in metadata['company'].lower():
+        missing_fields.append("company")
+
+    if missing_fields:
+        field_names = " and ".join(missing_fields)
+        field_hints = []
+        if "position" in missing_fields:
+            field_hints.append("Position")
+        if "company" in missing_fields:
+            field_hints.append("Company")
+        hint = " and ".join(field_hints)
+
+        error_msg = (
+            f"Could not extract {field_names} from job posting. "
+            f"Please fill in the {hint} field(s) and try again."
+        )
+        logger.error(f"[ERROR] {error_msg}")
+        raise UnknownMetadataError(error_msg, missing_fields)
 
     # 2. Generate filename if not provided
     if output_path is None:
