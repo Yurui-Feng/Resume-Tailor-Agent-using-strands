@@ -106,6 +106,7 @@ See the Chrome Extension in action: automatically scraping job descriptions from
 - **Chrome Extension** – Tailor resumes directly from job posting pages without switching tabs (addresses [Issue #6](https://github.com/your-repo/issues/6))
 - **Auto-Scraping** – Automatically extracts job descriptions from LinkedIn and Indeed job pages
 - **Job Posting Archive** – Saves job posting text + source URL alongside each tailored resume for future reference
+- **Google Sheets Tracking** – Auto-logs applications to Google Sheet for tracking status, follow-ups, and AI agent integration (e.g., moltbot)
 - **Metadata Extraction** – Lightweight AI extracts company name and job title from job postings
 - **Real-time Progress** – Watch your documents being generated with smooth progress bars and streaming AI output
 - **Multi-format Output** – Get LaTeX source files (.tex), compiled PDFs, and plain text versions
@@ -207,10 +208,12 @@ Strands-agent/
 │   ├── api/
 │   │   ├── models.py                # Request/response schemas
 │   │   └── routes.py                # API endpoints
-│   └── services/
-│       ├── resume_service.py        # Resume tailoring jobs
-│       ├── cover_letter_service.py  # Cover letter jobs
-│       └── log_handler.py           # Real-time log streaming
+│   ├── services/
+│   │   ├── resume_service.py        # Resume tailoring jobs
+│   │   ├── cover_letter_service.py  # Cover letter jobs
+│   │   └── log_handler.py           # Real-time log streaming
+│   └── integrations/
+│       └── sheets_tracker.py        # Google Sheets job tracking
 │
 ├── extension/                       # Chrome MV3 Extension
 │   ├── manifest.json                # Extension configuration
@@ -247,6 +250,11 @@ Strands-agent/
 │   ├── cover_letters/               # Generated cover letters
 │   └── job_postings/                # Job posting files (legacy)
 │
+├── scripts/
+│   └── backfill_sheets.py           # Backfill Google Sheet with existing resumes
+├── credentials/                     # Google OAuth credentials (gitignored)
+├── docs/
+│   └── MOLTBOT_INTEGRATION.md       # AI agent integration guide
 ├── logs/                            # Application logs
 ├── Dockerfile                       # Docker image definition
 ├── docker-compose.yml               # Docker Compose config
@@ -255,6 +263,35 @@ Strands-agent/
 ├── EXTENSION_QUICKSTART.md          # Extension quick start guide
 └── README.md
 ```
+
+---
+
+## Job Application Tracking (Google Sheets)
+
+Automatically track all job applications in a Google Sheet for:
+- **Status tracking** – applied → interviewing → offer/rejected
+- **Follow-up reminders** – set dates for follow-ups
+- **AI agent integration** – moltbot can query the sheet to provide context for interview emails
+
+### Setup
+
+1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable Google Sheets API
+3. Download OAuth client JSON to `credentials/`
+4. Add to `.env`:
+   ```bash
+   GOOGLE_SHEETS_ENABLED=true
+   GOOGLE_SHEETS_ID=your-sheet-id-from-url
+   ```
+5. First run will open browser for OAuth authorization
+
+### Backfill Existing Resumes
+
+```bash
+python scripts/backfill_sheets.py
+```
+
+See [docs/MOLTBOT_INTEGRATION.md](docs/MOLTBOT_INTEGRATION.md) for AI agent integration details.
 
 ---
 
