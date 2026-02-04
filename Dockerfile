@@ -29,7 +29,7 @@ COPY tools/ ./tools/
 COPY prompts/ ./prompts/
 
 # Create necessary directories
-RUN mkdir -p data/original data/job_postings data/tailored_versions logs
+RUN mkdir -p data/original data/job_postings data/tailored_resumes logs credentials
 
 # Expose port
 EXPOSE 8000
