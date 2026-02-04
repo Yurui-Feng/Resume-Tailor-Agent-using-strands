@@ -582,9 +582,20 @@ async function handleSubmit() {
   }
   if (lastScrapedUrl) {
     data.job_url = lastScrapedUrl;
-    console.log('Sending job_url:', lastScrapedUrl);
+    console.log('Sending job_url (from scrape):', lastScrapedUrl);
   } else {
-    console.log('Warning: lastScrapedUrl is null - URL will not be saved');
+    // Fallback: get current tab URL for manual paste
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url && !tab.url.startsWith('chrome://')) {
+        data.job_url = tab.url;
+        console.log('Sending job_url (from current tab):', tab.url);
+      } else {
+        console.log('Warning: No valid URL available');
+      }
+    } catch (e) {
+      console.log('Warning: Could not get tab URL:', e);
+    }
   }
 
   try {
