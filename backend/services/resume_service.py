@@ -191,19 +191,32 @@ class ResumeService:
 
             # Push to Google Sheets (non-blocking, non-fatal)
             try:
-                from backend.integrations.sheets_tracker import append_job_to_sheet
+                from backend.integrations.sheets_tracker import append_job_to_sheet, sort_sheet_by_date_descending
+
+                # Convert absolute Docker paths to relative paths
+                def to_relative_path(path: str) -> str:
+                    if not path:
+                        return ""
+                    # Strip /app/ prefix from Docker container paths
+                    if path.startswith("/app/"):
+                        return path[5:]  # Remove "/app/"
+                    return path
+
+                job_url = job.get("job_url", "")
+                logger.info(f"   Job URL for sheets: {job_url or '(none provided)'}")
                 append_job_to_sheet({
                     "job_id": job["id"],
                     "company": result.get("company", ""),
                     "position": result.get("position", ""),
-                    "job_url": job.get("job_url", ""),
-                    "resume_path": result.get("pdf_path", result.get("tex_path", "")),
-                    "job_posting_path": result.get("job_posting_path", ""),
+                    "job_url": job_url,
+                    "resume_path": to_relative_path(result.get("pdf_path", result.get("tex_path", ""))),
+                    "job_posting_path": to_relative_path(result.get("job_posting_path", "")),
                     "applied_date": job["completed_at"].isoformat(),
                     "status": "applied",
                     "notes": "",
                     "follow_up_date": ""
                 })
+                sort_sheet_by_date_descending()
             except Exception as e:
                 logger.warning(f"Google Sheets update failed (non-fatal): {e}")
 
