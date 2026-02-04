@@ -189,6 +189,24 @@ class ResumeService:
             job["completed_at"] = datetime.now()
             job["result"] = result
 
+            # Push to Google Sheets (non-blocking, non-fatal)
+            try:
+                from backend.integrations.sheets_tracker import append_job_to_sheet
+                append_job_to_sheet({
+                    "job_id": job["id"],
+                    "company": result.get("company", ""),
+                    "position": result.get("position", ""),
+                    "job_url": job.get("job_url", ""),
+                    "resume_path": result.get("pdf_path", result.get("tex_path", "")),
+                    "job_posting_path": result.get("job_posting_path", ""),
+                    "applied_date": job["completed_at"].isoformat(),
+                    "status": "applied",
+                    "notes": "",
+                    "follow_up_date": ""
+                })
+            except Exception as e:
+                logger.warning(f"Google Sheets update failed (non-fatal): {e}")
+
             logger.info(f"✅ Job {job_id} completed successfully")
             logger.info(f"   Company: {result['company']}, Position: {result['position']}")
             logger.info(f"   TEX: {result['tex_path']}")
