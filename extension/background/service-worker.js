@@ -424,19 +424,29 @@ async function scrapeJobInMainWorld(tabId) {
           console.log('[MAIN WORLD v5] No description found after polling');
         }
 
+        // Get title and company - scope to job details container if possible
+        const jobDetailsContainer = document.querySelector(
+          '.jobs-search__job-details, .scaffold-layout__detail, .job-view-layout, .jobs-details'
+        );
+        const searchContext = jobDetailsContainer || document;
+        console.log('[MAIN WORLD v5] Search context:', jobDetailsContainer ? 'Job details container found' : 'Using document (no container found)');
+
         // Get title
         const titleSelectors = [
           '.job-details-jobs-unified-top-card__job-title',
           '.jobs-unified-top-card__job-title',
           '.top-card-layout__title',
           'h1[class*="job-title"]',
+          'a[href*="/jobs/view/"]',
           'h1'
         ];
         let title = null;
         for (const sel of titleSelectors) {
-          const el = document.querySelector(sel);
+          const el = searchContext.querySelector(sel);
+          console.log('[MAIN WORLD v5] Title selector:', sel, '| Found:', !!el, '| Text:', el?.innerText?.trim()?.substring(0, 50));
           if (el && el.innerText.trim()) {
             title = el.innerText.trim();
+            console.log('[MAIN WORLD v5] ✓ Selected title with:', sel, '| Value:', title);
             break;
           }
         }
@@ -446,13 +456,16 @@ async function scrapeJobInMainWorld(tabId) {
           '.job-details-jobs-unified-top-card__company-name',
           '.jobs-unified-top-card__company-name',
           '.topcard__org-name-link',
-          'a[class*="company-name"]'
+          'a[class*="company-name"]',
+          'a[href*="/company/"]'
         ];
         let company = null;
         for (const sel of companySelectors) {
-          const el = document.querySelector(sel);
+          const el = searchContext.querySelector(sel);
+          console.log('[MAIN WORLD v5] Company selector:', sel, '| Found:', !!el, '| Text:', el?.innerText?.trim()?.substring(0, 50));
           if (el && el.innerText.trim()) {
             company = el.innerText.trim();
+            console.log('[MAIN WORLD v5] ✓ Selected company with:', sel, '| Value:', company);
             break;
           }
         }

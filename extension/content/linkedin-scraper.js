@@ -73,6 +73,7 @@ function scrapeViaMainWorld() {
           '.top-card-layout__title',
           '.jobs-unified-top-card__job-title',
           'h1[class*="job-title"]',
+          'a[href*="/jobs/view/"]',
           'h1'
         ];
         let title = null;
@@ -88,7 +89,8 @@ function scrapeViaMainWorld() {
         const companySelectors = [
           '.topcard__org-name-link',
           '.jobs-unified-top-card__company-name',
-          'a[class*="company-name"]'
+          'a[class*="company-name"]',
+          'a[href*="/company/"]'
         ];
         let company = null;
         for (const sel of companySelectors) {
@@ -216,6 +218,7 @@ async function scrapeLinkedInJob() {
     // Get title
     let title = null;
     const titleEl = document.querySelector('.jobs-unified-top-card__job-title') ||
+                    document.querySelector('a[href*="/jobs/view/"]') ||
                     document.querySelector('h1');
     if (titleEl) title = titleEl.innerText.trim();
 
