@@ -59,8 +59,12 @@ let hasReloadedForJobsPage = false;  // Track if we've already done a reload for
  */
 function extractLinkedInJobId(url) {
   if (!url) return null;
-  const match = url.match(/currentJobId=(\d+)/);
-  return match ? match[1] : null;
+  // First try currentJobId parameter (used in search results / SPA navigation)
+  const paramMatch = url.match(/currentJobId=(\d+)/);
+  if (paramMatch) return paramMatch[1];
+  // Fallback: extract from /jobs/view/ path (direct URLs from emails)
+  const pathMatch = url.match(/linkedin\.com\/jobs\/view\/[^?]*?(\d+)/);
+  return pathMatch ? pathMatch[1] : null;
 }
 
 /**
@@ -395,8 +399,9 @@ async function checkScrapingAvailable() {
 
     const url = tab.url;
 
-    // LinkedIn: Must have /jobs/ AND a job ID parameter (currentJobId=)
-    const isLinkedInJob = url.includes('linkedin.com/jobs') && url.includes('currentJobId=');
+    // LinkedIn: /jobs/ with either currentJobId= param OR /jobs/view/ path (direct URLs from emails)
+    const isLinkedInJob = url.includes('linkedin.com/jobs') &&
+      (url.includes('currentJobId=') || /\/jobs\/view\//.test(url));
 
     // Indeed: Must have /viewjob in the path
     const isIndeedJob = url.includes('indeed.com/viewjob');
